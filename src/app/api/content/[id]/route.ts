@@ -14,7 +14,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let details;
     try { details = validateDetails(input); } catch (error) { return privateJson({ error: error instanceof Error ? error.message : "Invalid details." }, 400); }
     if (typeof input.updated_at !== "string") return privateJson({ error: "Reload this item before saving." }, 400);
-    const { data, error } = await auth.database.from("content_items").update({ ...details, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
+    const full=details.product_name&&details.retailer&&details.product_url&&details.image_url;
+    const enrichment_status=full?(input.metadata_reviewed===true?'manual':'review_required'):(details.product_name||details.retailer?'partial':'pending');
+    const { data, error } = await auth.database.from("content_items").update({ ...details, metadata_reviewed:input.metadata_reviewed===true, enrichment_status, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
     if (error) return privateJson({ error: "Couldn’t save your changes. Please try again." }, 503);
     if (!data) return privateJson({ error: "This item changed in another tab. Refresh the library before editing again." }, 409);
     return privateJson({ saved: true });

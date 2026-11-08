@@ -7,7 +7,7 @@ test('deduplicates products across query strings, fragments and trailing slashes
   assert.equal(p.links[0].source_key, 'shopmy:p-123');
 });
 test('retains affiliate query attribution on the saved link', () => {
-  assert.equal(parseShopMyLink('https://go.shopmy.us/p-123?ref=abc#x').affiliate_url, 'https://go.shopmy.us/p-123?ref=abc');
+  assert.equal(parseShopMyLink('https://go.shopmy.us/p-123?ref=abc#x').affiliate_url, 'https://go.shopmy.us/p-123?ref=abc#x');
 });
 test('rejects deceptive hosts, embedded credentials, executable protocols and unsupported formats', () => {
   for (const url of ['https://go.shopmy.us.evil.com/p-123','https://go.shopmy.us@evil.com/p-123','https://user@go.shopmy.us/p-123','javascript:alert(1)','http://go.shopmy.us/p-123','https://go.shopmy.us/apx/anna','https://go.shopmy.us/p-123/evil','https://go.shopmy.us:444/p-123']) assert.equal(parseShopMyLink(url), null, url);

@@ -70,3 +70,8 @@ No production cloud setup is implied by the presence of these files. The UI disa
 Future approved API or explicitly authorized browser adapters must document their authorization and field provenance, retain stable source IDs, and pass through the same validation and deduplication boundary. Receiving permission for one workflow must not enable unattended retrieval.
 
 Run `npm test` for link canonicalization, duplicate detection, unsafe URL rejection, batch limits, partial drafts, and image permission checks.
+
+
+## Modular enrichment update
+
+See `docs/enrichment.md` for current behavior, source configuration, status codes, provider research, and operating boundaries. Apply migration `202611080002_modular_enrichment.sql` before deploying the new preview endpoints. Single-link preview returns editable suggestions before save. External resolver/retailer access is configuration-bound; no default network grants or Awin/CJ accounts are configured.

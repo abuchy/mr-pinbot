@@ -12,7 +12,9 @@ export type ContentItem = {
   created_at: string;
   updated_at: string;
   source: "pasted_link" | "official_shopmy_api" | "authorized_browser";
-  enrichment_status: "manual_required" | "enriched";
+  enrichment_status: "pending" | "partial" | "review_required" | "manual" | "enriched";
+  metadata_reviewed: boolean;
+  enrichment_report: { attempts: { stage: string; source: string; code: string; message: string; at: string }[]; checked_at: string | null; fields?: Record<string, { source: string; method: string; retrievedAt: string }> };
 };
 export type ParsedLink = { affiliate_url: string; source_key: string };
 export type ImportPreview = { links: ParsedLink[]; invalid: string[]; duplicates: number };
@@ -23,10 +25,15 @@ export function parseShopMyLink(input: string): ParsedLink | null {
     const url = new URL(input);
     if (url.protocol !== "https:" || url.username || url.password || url.port || url.hostname !== "go.shopmy.us") return null;
     const match = /^\/p-([1-9][0-9]*)\/?$/.exec(url.pathname);
-    if (!match) return null;
-    url.hash = "";
-    url.pathname = `/p-${match[1]}`;
-    return { affiliate_url: url.href, source_key: `shopmy:p-${match[1]}` };
+    if (match) return { affiliate_url: input.trim(), source_key: `shopmy:p-${match[1]}` };
+    if (/^\/apx\/[^/]+$/.test(url.pathname)) {
+      const destination = url.searchParams.get('url');
+      if (!destination || !safePublicUrl(destination)) return null;
+      const key = `shopmy:apx:${encodeURIComponent(url.pathname.split('/')[2])}:${encodeURIComponent(new URL(destination).href)}`;
+      if (key.length > 1500) return null;
+      return { affiliate_url: input.trim(), source_key: key };
+    }
+    return null;
   } catch { return null; }
 }
 
@@ -57,7 +64,8 @@ export function safePublicUrl(input: string): boolean {
       !u.hostname.endsWith(".localhost") && !/^[\d.]+$/.test(u.hostname) && !u.hostname.includes(":");
   } catch { return false; }
 }
-export function validateDetails(input: unknown) {
+export type ProductDetails = Record<'product_name'|'retailer'|'product_url'|'image_url'|'notes',string> & {image_rights_confirmed:boolean};
+export function validateDetails(input: unknown): ProductDetails {
   if (!input || typeof input !== "object") throw new Error("Please check the product details.");
   const value = input as Record<string, unknown>;
   const limits = { product_name: 300, retailer: 150, product_url: 2048, image_url: 2048, notes: 3000 };
@@ -69,5 +77,5 @@ export function validateDetails(input: unknown) {
   if (!safePublicUrl(result.product_url) || !safePublicUrl(result.image_url)) throw new Error("Use a public HTTPS address for product and image URLs.");
   if (typeof value.image_rights_confirmed !== "boolean") throw new Error("Please check image permission.");
   if (result.image_url && !value.image_rights_confirmed) throw new Error("Confirm permission to use the image, or leave the image address blank.");
-  return { ...result, image_rights_confirmed: value.image_rights_confirmed };
+  return { ...result, image_rights_confirmed: value.image_rights_confirmed } as ProductDetails;
 }

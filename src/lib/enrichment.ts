@@ -1,25 +1,13 @@
-import "server-only";
-import type { ParsedLink } from "./content";
-// New adapters must have documented authorization and return field-level provenance.
-// No redirect following, scraping, arbitrary URL fetches, or retailer metadata probing.
-export type AuthorizedEnrichment = {
-  provider: string;
-  authorizationReference: string;
-  fields: Partial<Record<"product_name" | "retailer" | "product_url" | "image_url", string>>;
-};
-export interface EnrichmentProvider {
-  id: string;
-  authorizationReference: string;
-  enrich(link: ParsedLink, signal: AbortSignal): Promise<AuthorizedEnrichment | null>;
+import 'server-only';
+import { EmbeddedDestinationResolver, AuthorizedRedirectResolver, PermittedPageProvider, LicensedFeedProvider, type LicensedFeed } from './enrichment/adapters';
+import type { Fields, Grant, ProductContext } from './enrichment/model';
+import { runPipeline } from './enrichment/engine';
+export function configuredPipeline() {
+  let grants: Grant[] = [], feeds: LicensedFeed[] = [];
+  // Only deployment configuration can grant access. User-pasted content cannot.
+  // Empty/malformed configuration fails closed; no default ShopMy/retailer grants.
+  try { const value=JSON.parse(process.env.PINBOT_ENRICHMENT_GRANTS || '[]'); if(Array.isArray(value)) grants=value.filter(g=>g&&typeof g.origin==='string'&&typeof g.authorizationReference==='string'&&typeof g.pathPrefix==='string'&&typeof g.expiresAt==='string'); } catch { /* no grants */ }
+  try { const value=JSON.parse(process.env.PINBOT_LICENSED_PRODUCT_FEEDS || '[]'); if(Array.isArray(value)) feeds=value.filter(f=>f&&typeof f.id==='string'&&typeof f.authorizationReference==='string'&&typeof f.expiresAt==='string'&&Array.isArray(f.records)); } catch { /* no feeds */ }
+  return {resolvers:[new EmbeddedDestinationResolver(),new AuthorizedRedirectResolver(grants)],providers:[...feeds.map(feed=>new LicensedFeedProvider(feed)),new PermittedPageProvider(grants)]};
 }
-const providers: readonly EnrichmentProvider[] = [];
-export async function enrichFromAuthorizedSources(link: ParsedLink) {
-  for (const provider of providers) {
-    if (!provider.authorizationReference) continue;
-    try {
-      const result = await provider.enrich(link, AbortSignal.timeout(5000));
-      if (result) return result;
-    } catch { /* An enrichment failure must never prevent saving the link. */ }
-  }
-  return null;
-}
+export async function enrichFromAuthorizedSources(context: ProductContext, current: Fields = {}) { return runPipeline(context,current,configuredPipeline()); }
