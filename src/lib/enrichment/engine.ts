@@ -8,7 +8,9 @@ export async function runPipeline(context: ProductContext, current: Fields, pipe
   const accept=(fields:Fields, origin?:Provenance, perField?:Partial<Record<keyof Fields,Provenance>>) => {
     for (const key of ['product_name','product_description','retailer','product_url','image_url'] as const) {
       const value=fields[key];
-      if (typeof value!=='string' || !value.trim() || current[key] || suggestions[key]) continue;
+      if (typeof value!=='string' || !value.trim()) continue;
+      if(current[key]===value.trim()&&(perField?.[key]||origin))report.fields[key]=perField?.[key]||origin;
+      if(current[key]||suggestions[key])continue;
       if ((key==='product_url'||key==='image_url') && !safePublicUrl(value)) continue;
       suggestions[key]=value.trim().slice(0,key==='product_name'?300:key==='retailer'?150:key==='product_description'?2000:2048);
       if (perField?.[key]||origin) report.fields[key]=perField?.[key]||origin;

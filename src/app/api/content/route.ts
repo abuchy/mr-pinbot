@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
       try {
         const result=await enrichFromAuthorizedSources(item,item);
         // Search images are review candidates, never an automatic license to publish.
-        if(result.suggestions.image_url&&!item.image_rights_confirmed&&result.enrichment_report.fields.image_url?.imageUsagePermission!==true)delete result.suggestions.image_url;
+        if(result.suggestions.image_url&&!item.image_rights_confirmed&&result.enrichment_report.fields.image_url?.imageUsagePermission!==true){
+          delete result.suggestions.image_url;
+          result.enrichment_status=(item.product_name||result.suggestions.product_name||item.retailer||result.suggestions.retailer)?'partial':'pending';
+        }
         const merged={...item,...result.suggestions};
         const full=merged.product_name&&merged.retailer&&merged.product_url&&merged.image_url;
         const status=full&&input.reviewed===true?'manual':result.enrichment_status;

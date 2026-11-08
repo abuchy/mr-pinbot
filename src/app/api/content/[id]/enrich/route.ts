@@ -15,7 +15,10 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
   if(claimError||!claim)return privateJson({error:'Another edit or lookup is already in progress. Refresh before retrying.'},409);
   const result=await enrichFromAuthorizedSources(item,item);
         // Search images are review candidates, never an automatic license to publish.
-        if(result.suggestions.image_url&&!item.image_rights_confirmed&&result.enrichment_report.fields.image_url?.imageUsagePermission!==true)delete result.suggestions.image_url;
+        if(result.suggestions.image_url&&!item.image_rights_confirmed&&result.enrichment_report.fields.image_url?.imageUsagePermission!==true){
+          delete result.suggestions.image_url;
+          result.enrichment_status=(item.product_name||result.suggestions.product_name||item.retailer||result.suggestions.retailer)?'partial':'pending';
+        }
   const report={...result.enrichment_report,fields:{...(item.enrichment_report?.fields||{}),...result.enrichment_report.fields}};
   const {data:updated,error:saveError}=await auth.database.from('content_items').update({...result.suggestions,enrichment_status:result.enrichment_status,enrichment_report:report,metadata_reviewed:false,image_rights_confirmed:!!(item.image_rights_confirmed||result.enrichment_report.fields.image_url?.imageUsagePermission===true),updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',auth.user.id).eq('updated_at',claimedAt).select('*').maybeSingle();
   if(saveError||!updated)return privateJson({error:'The item changed during lookup. Refresh before retrying.'},409);
