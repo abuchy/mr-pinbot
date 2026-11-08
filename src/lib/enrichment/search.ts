@@ -9,7 +9,7 @@ const words=(value:string)=>value.toLowerCase().normalize('NFKC').replace(/[^a-z
 function sameProduct(a:string,b:string){try{const x=new URL(a),y=new URL(b);return x.hostname.replace(/^www\./,'')===y.hostname.replace(/^www\./,'')&&x.pathname.replace(/\/$/,'')===y.pathname.replace(/\/$/,'');}catch{return false;}}
 export function matchSearch(context:ProductContext,response:SearchResponse){
  const wanted=new URL(context.product_url).searchParams.get('variant');
- const hits=(response.results||[]).filter(hit=>safePublicUrl(hit.url)&&sameProduct(hit.url,context.product_url)&&(!wanted||!new URL(hit.url).searchParams.get('variant')||new URL(hit.url).searchParams.get('variant')===wanted)).sort((a,b)=>Number(new URL(b.url).searchParams.get('variant')===wanted)-Number(new URL(a.url).searchParams.get('variant')===wanted));
+ const hits=(response.results||[]).filter(hit=>safePublicUrl(hit.url)&&sameProduct(hit.url,context.product_url)&&(!wanted||!!context.variant||!new URL(hit.url).searchParams.get('variant')||new URL(hit.url).searchParams.get('variant')===wanted)).sort((a,b)=>Number(new URL(b.url).searchParams.get('variant')===wanted)-Number(new URL(a.url).searchParams.get('variant')===wanted));
  if(!hits.length)return {fields:{} as Fields,images:[] as SearchImage[],provenance:{} as Partial<Record<keyof Fields,Provenance>>};
  const hit=hits[0],url=new URL(context.product_url);
  const parts=hit.title.split(/\s+[–—|]\s+|\s+-\s+/);

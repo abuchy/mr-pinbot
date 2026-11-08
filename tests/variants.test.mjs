@@ -22,3 +22,7 @@ test('indexed variant URLs reject another ID and can identify a labeled selected
  const result=matchSearch({product_url:url},{results:[{url:'https://shop.example/products/tank?variant=99',title:'Triangle Cami Tank - Red - Retailer'},{url:'https://shop.example/products/tank?variant=42',title:'Triangle Cami Tank - Plum and White Polka Dot - Retailer'}],images:[{url:'https://shop.example/plum-dot.png',title:'Triangle Cami Tank Plum and White Polka Dot'}]});
  assert.equal(result.variant.id,'42');assert.equal(result.variant.source,'search_index');assert.match(result.fields.product_name,/Plum and White Polka Dot/);assert.equal(result.fields.image_url,'https://shop.example/plum-dot.png');
 });
+test('a parent page indexed under another variant can anchor only an independently known colorway',()=>{
+ const result=matchSearch({product_url:url,variant:{id:'42',label:'Plum and White Polka Dot',source:'user_confirmed',attributes:{}}},{results:[{url:'https://shop.example/products/tank?variant=99',title:'Triangle Cami Tank – Retailer'}],images:[{url:'https://shop.example/red.png',title:'Triangle Cami Tank Red'},{url:'https://shop.example/plum-dot.png',title:'Triangle Cami Tank Plum and White Polka Dot / S'}]});
+ assert.equal(result.variant.id,'42');assert.equal(result.fields.image_url,'https://shop.example/plum-dot.png');assert.equal(result.images.length,1);
+});
