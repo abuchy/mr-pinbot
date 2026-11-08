@@ -47,6 +47,7 @@ export class TavilySearchProvider implements MetadataProvider{
    const payload=JSON.parse(text) as SearchResponse;
    const pages=(payload.results||[]).slice(0,3).map(hit=>safePublicUrl(hit.url)?hit.url:'').filter(Boolean);
    attempts.push(attempt('metadata',this.id,'search_result_summary',`Search returned ${payload.results?.length||0} pages. ${pages.length?'Sources checked: '+pages.join(' · '):'No indexed product pages were returned.'}`));
+   attempts.push(attempt('metadata',this.id,'search_image_summary',`Image results: ${(payload.images||[]).slice(0,6).map(image=>`${image.title||image.description||'(no caption)'} [${image.url}]`).join(' · ')||'none'}`));
    const found=matchSearch(context,payload);
    if(found.fields.product_name)matched=found;
    if(found.fields.product_name&&found.fields.image_url)break;
