@@ -37,7 +37,7 @@ export function ProductFields({values,onDescribe,onPending,warning}:{values:Valu
   <label className="field-label">Website<input name="website_url" type="url" defaultValue={values.website_url||values.affiliate_url||''} required maxLength={2048}/></label>
   <label className="field-label">Image URL<input name="image_url" type="url" value={image} onChange={e=>{last.current='';setImage(e.target.value);setSuggestion(null);}} maxLength={2048}/></label>
   {image&&<div className="review-image"><Image key={image} unoptimized width={220} height={220} src={image} alt="Product image preview" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.alt='Image could not load; check its URL.';}}/></div>}
-  <label className="field-label">Description<textarea name="product_description" rows={4} value={description} onChange={e=>{dirty.current=true;setManual(true);setDescription(e.target.value);}} maxLength={2000}/></label>
+  <label className="field-label">Description<textarea name="product_description" rows={4} value={description} onChange={e=>{dirty.current=true;setManual(true);setDescription(e.target.value);setStatus('Your edited description will be kept when the image changes.');}} maxLength={2000}/></label>
   <input type="hidden" name="description_is_manual" value={String(manual)}/><input type="hidden" name="description_image_url" value={descriptionImage}/>
   {status&&<p className="field-help" role="status">{status}</p>}
   {onDescribe&&image&&<button type="button" className="inline-button" onClick={()=>setRevision(value=>value+1)}>Regenerate description</button>}
