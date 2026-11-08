@@ -27,7 +27,16 @@ Import `abuchy/mr-pinbot` into Vercel using the Next.js preset. The repository r
 
 ## Project status
 
-This is a deployment starter. The dashboard, authentication, Supabase, Pinterest, ShopMy, and scheduled publishing are not implemented yet. Add authentication before exposing any private data or integration controls.
+The responsive dashboard shell includes Overview, Content Library (empty status filters and search), Publishing Queue, and Analytics. Fonts and colors follow Anna’s portfolio and use the supplied Mr. Pinbot mascot. Authentication, Supabase, Pinterest, ShopMy, and scheduled publishing are not implemented yet. Add authentication before exposing any private data or integration controls.
+
+## Routes
+
+- `/`: overview and setup guidance
+- `/library`: content library shell
+- `/queue`: publishing queue shell
+- `/analytics`: unavailable performance metrics
+
+The public shell contains no private user data. Counts are empty-state placeholders, and no publishing controls are enabled.
 
 ## Credentials
 
