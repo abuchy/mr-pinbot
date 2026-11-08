@@ -19,7 +19,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
           delete result.suggestions.image_url;
           result.enrichment_status=(item.product_name||result.suggestions.product_name||item.retailer||result.suggestions.retailer)?'partial':'pending';
         }
-  const report={...result.enrichment_report,fields:{...(item.enrichment_report?.fields||{}),...result.enrichment_report.fields}};
+  const report={...result.enrichment_report,image_candidates:result.enrichment_report.image_candidates??item.enrichment_report?.image_candidates,fields:{...(item.enrichment_report?.fields||{}),...result.enrichment_report.fields}};
   const {data:updated,error:saveError}=await auth.database.from('content_items').update({...result.suggestions,enrichment_status:result.enrichment_status,enrichment_report:report,metadata_reviewed:false,image_rights_confirmed:!!(item.image_rights_confirmed||result.enrichment_report.fields.image_url?.imageUsagePermission===true),updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',auth.user.id).eq('updated_at',claimedAt).select('*').maybeSingle();
   if(saveError||!updated)return privateJson({error:'The item changed during lookup. Refresh before retrying.'},409);
   return privateJson({item:updated});
