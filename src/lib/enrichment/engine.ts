@@ -25,8 +25,8 @@ export async function runPipeline(context: ProductContext, current: Fields, pipe
     try { const result=await provider.lookup({...context,product_url:productUrl});report.attempts.push(...result.attempts);accept(result.fields,result.provenance);productUrl ||= suggestions.product_url || ''; }
     catch(error){failure('metadata',provider.id,error);}
   }
-  if (!pipeline.providers.some(p=>p.id!=='permitted_page')) report.attempts.push(attempt('metadata','catalog_registry','provider_not_configured','No authorized product API or feed is connected yet. Metadata remains pending; manual details are optional.'));
   const merged={...current,...suggestions};
+  if (!complete(merged) && !pipeline.providers.some(p=>p.id!=='permitted_page')) report.attempts.push(attempt('metadata','catalog_registry','provider_not_configured','No additional product-data source is configured for the missing fields.'));
   const found=!!(merged.product_name||merged.retailer||merged.image_url);
   return {enrichment_status:complete(merged)?'review_required':found?'partial':'pending',enrichment_report:report,suggestions};
 }

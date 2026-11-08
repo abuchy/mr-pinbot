@@ -1,0 +1,5 @@
+export function GET(){
+ const origin='https://pinbot.annabuchy.com';
+ const product={"@context":"https://schema.org","@type":"Product",name:'Mr. Pinbot desk print (demo)',image:`${origin}/pinbot.png`,url:`${origin}/demo/product`,offers:{'@type':'Offer',seller:{'@type':'Organization',name:'Mr. Pinbot Demo Shop'}}};
+ return new Response(`<!doctype html><html lang="en"><head><title>Mr. Pinbot desk print (demo)</title><meta property="og:title" content="Mr. Pinbot desk print (demo)"><meta property="og:site_name" content="Mr. Pinbot Demo Shop"><meta property="og:image" content="${origin}/pinbot.png"><meta property="og:url" content="${origin}/demo/product"><meta name="robots" content="noindex"><script type="application/ld+json">${JSON.stringify(product)}</script></head><body><h1>Mr. Pinbot desk print (demo)</h1><p>This is a first-party test product, not a real item for sale. Mr. Pinbot may fetch and parse this page for the import demonstration.</p><img src="/pinbot.png" width="160" alt="Mr. Pinbot mascot"></body></html>`,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=60'}});
+}

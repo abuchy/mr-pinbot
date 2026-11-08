@@ -39,3 +39,16 @@ test('permissions are origin, path, purpose and time bound; unsafe IPs are rejec
  for(const ip of ['127.0.0.1','10.0.0.1','169.254.169.254','192.168.1.1','100.64.1.1','198.18.0.1'])assert.equal(publicIPv4(ip),false);
  assert.equal(publicIPv4('8.8.8.8'),true);
 });
+
+import {ShopMyPublicLinkResolver} from '../src/lib/enrichment/shopmy-redirect.ts';
+test('public ShopMy resolver requests only the supplied URL and decodes Location without calling the API',async()=>{
+ const calls=[];
+ const resolver=new ShopMyPublicLinkResolver(async(url,purpose,_grants,options)=>{calls.push([url.href,purpose,options.head]);return {status:302,location:'https://apiv3.shopmy.us/api/redirect_click?url=https%3A%2F%2Fexample.com%2Fp%3Fvariant%3Dblue%26utm_source%3DShopMy',contentType:'',body:''};});
+ const result=await resolver.resolve(context);
+ assert.equal(result.url,'https://example.com/p?variant=blue');
+ assert.deepEqual(calls,[[context.affiliate_url,'redirect',true]]);
+});
+test('Open Graph is preferred over conflicting JSON-LD, with JSON-LD as fallback',()=>{
+ const html='<meta property="og:title" content="OG name"><meta property="og:image" content="/og.jpg"><script type="application/ld+json">{"@type":"Product","name":"JSON name","image":"/json.jpg"}</script>';
+ const result=extractMetadata(html,'https://example.com/p');assert.equal(result.fields.product_name,'OG name');assert.equal(result.fields.image_url,'https://example.com/og.jpg');
+});

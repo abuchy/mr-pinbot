@@ -28,6 +28,6 @@ export function extractMetadata(html: string, page: string): { fields: Fields; m
   const offers = Array.isArray(product?.offers) ? product.offers[0] : product?.offers;
   const seller = offers && typeof offers === 'object' ? (offers as Record<string,unknown>).seller : undefined;
   // Brand is not necessarily the retailer. Use seller/site name instead.
-  const fields: Fields = { product_name: text(product?.name || og('og:title'),300), retailer: text((seller && typeof seller === 'object' ? (seller as Record<string,unknown>).name : '') || og('og:site_name'),150), product_url: page, image_url: absolute(imageUrl || og('og:image'),page) };
+  const fields: Fields = { product_name: text(og('og:title') || product?.name,300), retailer: text((seller && typeof seller === 'object' ? (seller as Record<string,unknown>).name : '') || og('og:site_name'),150), product_url: page, image_url: absolute(og('og:image') || imageUrl,page) };
   return { fields, method: product ? 'Product JSON-LD + Open Graph' : 'Open Graph' };
 }

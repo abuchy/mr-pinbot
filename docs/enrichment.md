@@ -5,7 +5,7 @@ Paste one link → Find product details → review/correct suggestions → Save 
 ## Current capability and limits
 
 - Embedded destinations in documented ShopMy `apx/...?...url=...` links are decoded locally. No ShopMy request is needed.
-- An opaque `p-ID` requires a destination resolver or a licensed product mapping. No resolver is currently configured for ShopMy. This is a configuration/authorization uncertainty, not a claim that URL parsing is prohibited.
+- A user-pasted ShopMy `p-ID` now receives one anonymous public HTTP HEAD lookup. Its Location header can expose an encoded retailer URL; this is decoded locally. The intermediate `apiv3.shopmy.us/api/redirect_click` route is never called. This is ordinary public-link resolution, not dashboard or API access. ShopMy’s broad software terms leave the contractual scope ambiguous; this implementation does not assert API authorization.
 - Redirect adapters support individual HEAD requests only for origins and paths with recorded current authorization. Every hop is checked; credentials/cookies and arbitrary APIs are not used. A public redirect response does not itself authorize a subsequent metadata fetch.
 - Licensed feed adapters match exact affiliate IDs/URLs or retailer URLs. They do not guess products from names. Awin/CJ records generally do not contain ShopMy IDs, so a retailer URL/SKU mapping may still be necessary.
 - Permitted-page adapters parse Open Graph and Product JSON-LD without executing JavaScript. Recorded access scope is checked before fetching; robots restrictions and 401/403/429 responses are respected. HTTP redirects during metadata retrieval are not followed automatically. Images are returned only under a license covering republication. Public metadata alone does not establish such a license.
@@ -29,7 +29,7 @@ Example shape (illustrative; not a grant for example.com):
 }]
 ```
 
-Purpose can be `redirect`, `metadata`, or `feed`. There are no default grants. Requests have bounded bodies/timeouts, HTTPS only, exact origin/path checks, pinned DNS, public IPv4 validation, and no forwarded browser cookies or authentication. There are no unattended jobs.
+Purpose can be `redirect`, `metadata`, or `feed`. There are no default retailer metadata grants. The user-triggered ShopMy public one-hop resolver is separate from configured API or retailer-page access. Requests have bounded bodies/timeouts, HTTPS only, exact origin/path checks, pinned DNS, public IPv4 validation, and no forwarded browser cookies or authentication. There are no unattended jobs.
 
 ## Licensed normalized feed adapter
 
@@ -67,3 +67,10 @@ A user-triggered preview handles one link. Bulk save stores links safely first a
 - CJ Product Feed API supports publisher product queries using a Personal Access Token, company ID and advertiser IDs: https://docs.cj.com/docs/productfeed-api-search . Product identity/retailer coverage and reuse rights require verification.
 
 These are supported product-data products, not universal URL-unfurling services. Neither is connected yet, and their tracking links must not replace the user's original ShopMy affiliate URL.
+
+
+## Browser-verifiable HTTP demo
+
+`/demo/import` is a clearly labeled public demo that uses the same redirect resolver, HTTP client, page metadata parser, and ProductFields review UI as production. Its fixed test link `/demo/link` returns a real HTTP 302 to `/demo/product`, which serves first-party OG and Product JSON-LD. The demo API contacts these pages over HTTPS; it does not fabricate metadata in the client. Images use the provided first-party mascot. Demo save is intentionally page-local and labeled, and cannot write private content. Real signed-in imports still save to Supabase.
+
+The test ShopMy link p-101876060 resolves to `https://klassyshop.com/products/solid-triangle-cami-tank?variant=50517004091454`. Klassy page metadata is not fetched because its published terms explicitly prohibit automated access. No retailer fields or images are guessed.

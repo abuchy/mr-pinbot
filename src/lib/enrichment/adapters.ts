@@ -43,6 +43,7 @@ export class PermittedPageProvider implements MetadataProvider {
   async lookup(context: ProductContext) {
     if (!context.product_url) return {fields:{},attempts:[]};
     const url = new URL(context.product_url), grant = grantFor(url,'metadata',this.grants);
+    if (!grant && (url.hostname==='klassyshop.com'||url.hostname==='www.klassyshop.com')) return {fields:{},attempts:[attempt('metadata',this.id,'retailer_access_restricted','Klassy’s published terms prohibit automated website access. The product URL was resolved, but title and image retrieval need an allowed source.')]};
     if (!grant) return {fields:{},attempts:[attempt('metadata',this.id,'metadata_permission_required','The retailer page has no approved automated-access permission. A permitted API or feed can still supply details.')]};
     if (!grant.permitsShopMyDestination) return {fields:{},attempts:[attempt('metadata',this.id,'license_scope_required','The source’s permission must cover using its metadata with the original ShopMy destination.')]};
     const robots = await authorizedRequest(new URL('/robots.txt',url),'metadata',this.grants,{robots:true,signal:this.signal});
