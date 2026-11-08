@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { parseShopMyLink, safePublicUrl } from '@/lib/content';
 import { enrichFromAuthorizedSources } from '@/lib/enrichment';
+import {hostEnrichedImage} from '@/lib/product-images';
 export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return privateJson({error:'Request not allowed.'},403);
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
     if(!link) return privateJson({error:'Enter a valid ShopMy affiliate link.'},400);
     const product_url=typeof input.product_url==='string'&&safePublicUrl(input.product_url)?input.product_url:'';
     const result=await enrichFromAuthorizedSources({...link,product_url},{product_url},auth.database);
-    return privateJson({...result,affiliate_url:link.affiliate_url,source_key:link.source_key});
+    const hosted=await hostEnrichedImage(result,auth.database,auth.user.id);
+    return privateJson({...result,...hosted,affiliate_url:link.affiliate_url,source_key:link.source_key});
   } catch { return privateJson({error:'Couldn’t check the link. It has not been saved; you can try again.'},503); }
 }

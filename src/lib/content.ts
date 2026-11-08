@@ -11,6 +11,8 @@ export type ContentItem = {
   retailer: string;
   product_url: string;
   image_url: string;
+  original_image_url?:string;
+  image_notice?:string;
   image_rights_confirmed: boolean;
   notes: string;
   created_at: string;

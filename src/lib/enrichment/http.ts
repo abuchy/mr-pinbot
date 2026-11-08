@@ -18,6 +18,16 @@ export type HttpResult = { status: number; location?: string; contentType: strin
 export async function authorizedRequest(url: URL, purpose: Grant['purpose'], grants: readonly Grant[], options: { head?: boolean; robots?: boolean; signal?: AbortSignal } = {}): Promise<HttpResult> {
   const grant = options.robots ? grants.find(g => g.origin === url.origin && g.purpose === purpose && g.authorizationReference && Date.parse(g.expiresAt) > Date.now()) : grantFor(url, purpose, grants);
   if (!grant || url.protocol !== 'https:' || url.username || url.password || url.port) throw new SourceError('permission_required', 'This source has no current authorization for this request.');
+  const result = await publicBinaryRequest(url, {
+    ...options,
+    maxBytes: 2_000_000,
+    accept: purpose === 'feed' ? 'application/json' : 'text/html,text/plain',
+  });
+  return {...result, body:result.body.toString('utf8')};
+}
+
+export async function publicBinaryRequest(url:URL, options:{head?:boolean;signal?:AbortSignal;maxBytes:number;accept:string;imageOnly?:boolean}) {
+  if(url.protocol!=='https:'||url.username||url.password||url.port)throw new SourceError('unsafe_destination','Use a public HTTPS address.');
   let dnsTimer: ReturnType<typeof setTimeout> | undefined;
   const addresses = await Promise.race([
     lookup(url.hostname, { family: 4, all: true }),
@@ -25,14 +35,17 @@ export async function authorizedRequest(url: URL, purpose: Grant['purpose'], gra
   ]).finally(()=>clearTimeout(dnsTimer));
   if (!addresses.length || addresses.some(a => !publicIPv4(a.address))) throw new SourceError('unsafe_destination', 'The destination is not a public internet address.');
   const address = addresses[0].address;
-  return new Promise((resolve, reject) => {
+  return new Promise<{status:number;location?:string;contentType:string;body:Buffer}>((resolve, reject) => {
     const timer = setTimeout(() => req.destroy(new SourceError('timeout', 'The source timed out. Retry later.')), 7000);
-    const req = request(url, { method: options.head ? 'HEAD' : 'GET', family: 4, lookup: (_hostname, _options, callback) => callback(null, address, 4), headers: { 'User-Agent': 'MrPinbot/1.0 (+https://pinbot.annabuchy.com)', Accept: purpose === 'feed' ? 'application/json' : 'text/html,text/plain', 'Accept-Encoding': 'identity' }, signal: options.signal }, res => {
+    const req = request(url, { method: options.head ? 'HEAD' : 'GET', family: 4, lookup: (_hostname, _options, callback) => callback(null, address, 4), headers: { 'User-Agent': 'MrPinbot/1.0 (+https://pinbot.annabuchy.com)', Accept: options.accept, 'Accept-Encoding': 'identity' }, signal: options.signal }, res => {
       const status = res.statusCode ?? 0;
-      if (status >= 300 && status < 400) { res.destroy(); resolve({ status, location: res.headers.location, contentType: '', body: '' }); return; }
+      if (status >= 300 && status < 400) { res.destroy(); resolve({ status, location: res.headers.location, contentType: '', body: Buffer.alloc(0) }); return; }
+      if(options.imageOnly && (status!==200 || !/^image\/(jpeg|png|webp)(?:;|$)/i.test(res.headers['content-type']||''))) {
+        req.destroy(new SourceError('invalid_image','The source did not return a supported public image.')); return;
+      }
       const chunks: Buffer[] = []; let bytes = 0;
-      res.on('data', chunk => { bytes += chunk.length; if (bytes > 2_000_000) req.destroy(new SourceError('too_large', 'The response exceeded the size limit.')); else chunks.push(chunk); });
-      res.on('end', () => resolve({ status, contentType: res.headers['content-type'] ?? '', body: Buffer.concat(chunks).toString('utf8') }));
+      res.on('data', chunk => { bytes += chunk.length; if (bytes > options.maxBytes) req.destroy(new SourceError('too_large', 'The response exceeded the size limit.')); else chunks.push(chunk); });
+      res.on('end', () => resolve({ status, contentType: res.headers['content-type'] ?? '', body: Buffer.concat(chunks) }));
       res.on('error', reject);
     });
     req.on('error', reject); req.on('close', () => clearTimeout(timer)); req.end();
