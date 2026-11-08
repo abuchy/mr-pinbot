@@ -18,3 +18,7 @@ test('vision integration sends image, uses no stored response, and handles missi
  const result=await describeImage('https://shop.example/photo.png','Tank','test',async(url,init)=>{assert.equal(url,'https://api.openai.com/v1/responses');const body=JSON.parse(init.body);assert.equal(body.store,false);assert.equal(body.input[0].content[1].image_url,'https://shop.example/photo.png');return new Response(JSON.stringify({output:[{type:'message',content:[{type:'output_text',text:'A plum polka-dot cami with slim straps.'}]}]}));});
  assert.equal(result.description,'A plum polka-dot cami with slim straps.');
 });
+test('indexed variant URLs reject another ID and can identify a labeled selected variant',()=>{
+ const result=matchSearch({product_url:url},{results:[{url:'https://shop.example/products/tank?variant=99',title:'Triangle Cami Tank - Red - Retailer'},{url:'https://shop.example/products/tank?variant=42',title:'Triangle Cami Tank - Plum and White Polka Dot - Retailer'}],images:[{url:'https://shop.example/plum-dot.png',title:'Triangle Cami Tank Plum and White Polka Dot'}]});
+ assert.equal(result.variant.id,'42');assert.equal(result.variant.source,'search_index');assert.match(result.fields.product_name,/Plum and White Polka Dot/);assert.equal(result.fields.image_url,'https://shop.example/plum-dot.png');
+});
