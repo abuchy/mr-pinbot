@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       if(parsed.links.length!==1) return privateJson({error:'Review one product at a time.'},400);
       try { details=validateDetails(input.details); } catch(error){return privateJson({error:error instanceof Error?error.message:'Check product details.'},400);}
     }
-    const original_image_url=details?await originalImageUrl(auth.database,auth.user.id,details.image_url):'';
+    const original_image_url=details?await originalImageUrl(auth.database,auth.user.id,details.image_url,input.details.original_image_url):'';
     // Save first, before any optional network operation. Duplicates never overwrite edits.
     const {data,error}=await auth.database.from('content_items').upsert(parsed.links.map(link=>({...link,owner_id:auth.user.id,source:'pasted_link',enrichment_status:'pending',...(details||{}),original_image_url,metadata_reviewed:!!details})),{onConflict:'owner_id,source_key',ignoreDuplicates:true}).select('*');
     if(error) return privateJson({error:'Links could not be saved. Your pasted text is preserved.'},503);

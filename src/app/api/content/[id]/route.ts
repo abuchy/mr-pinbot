@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let details;
     try { details = validateDetails(input); } catch (error) { return privateJson({ error: error instanceof Error ? error.message : "Invalid details." }, 400); }
     if (typeof input.updated_at !== "string") return privateJson({ error: "Reload this item before saving." }, 400);
-    const original_image_url=await originalImageUrl(auth.database,auth.user.id,details.image_url);
+    const original_image_url=await originalImageUrl(auth.database,auth.user.id,details.image_url,input.original_image_url);
     const full=details.product_name&&details.website_url&&details.image_url&&details.product_description;
     const enrichment_status=full?'review_required':details.product_name?'partial':'pending';
     const { data, error } = await auth.database.from("content_items").update({ ...details, original_image_url, metadata_reviewed:true, enrichment_status, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
