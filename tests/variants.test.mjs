@@ -26,3 +26,9 @@ test('a parent page indexed under another variant can anchor only an independent
  const result=matchSearch({product_url:url,variant:{id:'42',label:'Plum and White Polka Dot',source:'user_confirmed',attributes:{}}},{results:[{url:'https://shop.example/products/tank?variant=99',title:'Triangle Cami Tank – Retailer'}],images:[{url:'https://shop.example/red.png',title:'Triangle Cami Tank Red'},{url:'https://shop.example/plum-dot.png',title:'Triangle Cami Tank Plum and White Polka Dot / S'}]});
  assert.equal(result.variant.id,'42');assert.equal(result.fields.image_url,'https://shop.example/plum-dot.png');assert.equal(result.images.length,1);
 });
+test('combines a colorway image from the first query with product-page evidence from the second',async()=>{
+ const {TavilySearchProvider}=await import('../src/lib/enrichment/search.ts');let calls=0;
+ const provider=new TavilySearchProvider('test',async()=>new Response(JSON.stringify(++calls===1?{results:[{url:'https://shop.example/products/halter',title:'Square Neck Halter – Retailer'}],images:[{url:'https://shop.example/plum-dot.png',title:'Triangle Cami Tank Plum and White Polka Dot / S'}]}:{results:[{url:'https://shop.example/products/tank?variant=99',title:'Triangle Cami Tank – Retailer'}],images:[{url:'https://shop.example/red.png',title:'Triangle Cami Tank Red'}]})));
+ const result=await provider.lookup({product_url:url,variant:{id:'42',label:'Plum and White Polka Dot',source:'user_confirmed',attributes:{}}});
+ assert.equal(calls,2);assert.equal(result.fields.image_url,'https://shop.example/plum-dot.png');assert.match(result.fields.product_name,/Plum and White Polka Dot/);
+});

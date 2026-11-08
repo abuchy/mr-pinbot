@@ -37,6 +37,7 @@ export class TavilySearchProvider implements MetadataProvider{
   const url=new URL(context.product_url),slug=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'').replace(/[-_]+/g,' ');
   const colorQuery=context.variant?.label.split(/\s+and\s+/i).map(part=>`"${part.replaceAll('"','')}"`).join(' ');
   const queries=colorQuery?[`site:${url.hostname}${url.pathname} ${colorQuery}`,`site:${url.hostname} ${slug} ${colorQuery}`]:url.searchParams.get('variant')?[`site:${url.hostname}${url.pathname} "${url.searchParams.get('variant')}"`,`site:${url.hostname}${url.pathname} ${slug}`]:[`site:${url.hostname}${url.pathname} ${slug}`];
+  const collected:SearchResponse={results:[],images:[]};
   const attempts=[];let matched:ReturnType<typeof matchSearch>|undefined;
   for(const query of queries){
    const response=await this.http('https://api.tavily.com/search',{method:'POST',headers:{'Content-Type':'application/json',...(this.apiKey?{Authorization:`Bearer ${this.apiKey}`}:{'X-Tavily-Access-Mode':'keyless'})},body:JSON.stringify({query,max_results:5,include_domains:[url.hostname],include_images:true,include_image_descriptions:true,include_raw_content:false,include_answer:false,search_depth:'advanced'}),signal:AbortSignal.timeout(15000),redirect:'error'});
@@ -48,7 +49,8 @@ export class TavilySearchProvider implements MetadataProvider{
    const pages=(payload.results||[]).slice(0,3).map(hit=>safePublicUrl(hit.url)?hit.url:'').filter(Boolean);
    attempts.push(attempt('metadata',this.id,'search_result_summary',`Search returned ${payload.results?.length||0} pages. ${pages.length?'Sources checked: '+pages.join(' · '):'No indexed product pages were returned.'}`));
    attempts.push(attempt('metadata',this.id,'search_image_summary',`Image results: ${(payload.images||[]).slice(0,6).map(image=>`${image.title||image.description||'(no caption)'} [${image.url}]`).join(' · ')||'none'}`));
-   const found=matchSearch(context,payload);
+   collected.results!.push(...(payload.results||[]));collected.images!.push(...(payload.images||[]));
+   const found=matchSearch(context,collected);
    if(found.fields.product_name)matched=found;
    if(found.fields.product_name&&found.fields.image_url)break;
    attempts.push(attempt('metadata',this.id,'search_query_incomplete','No complete product and image match from this query. Trying the next focused product search.'));
