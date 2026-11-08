@@ -23,11 +23,11 @@ npm run build
 
 ## Deployment
 
-Import `abuchy/mr-pinbot` into Vercel using the Next.js preset. The repository root is the app root. Use Node.js 22. No environment variables are needed for this initial starter.
+Import `abuchy/mr-pinbot` into Vercel using the Next.js preset. The repository root is the app root. Use Node.js 22. Configure the environment variables listed in `.env.example` before deploying the private library.
 
 ## Project status
 
-The responsive dashboard shell includes Overview, Content Library (empty status filters and search), Publishing Queue, and Analytics. Fonts and colors follow Anna’s portfolio and use the supplied Mr. Pinbot mascot. Authentication, Supabase, Pinterest, ShopMy, and scheduled publishing are not implemented yet. Add authentication before exposing any private data or integration controls.
+The responsive dashboard shell includes Overview, Content Library (empty status filters and search), Publishing Queue, and Analytics. Fonts and colors follow Anna’s portfolio and use the supplied Mr. Pinbot mascot. Supabase-backed private link imports and email-link sign-in are implemented. Pinterest, automatic ShopMy retrieval, and scheduled publishing are not implemented. Add authentication before exposing any private data or integration controls.
 
 ## Routes
 
@@ -36,7 +36,7 @@ The responsive dashboard shell includes Overview, Content Library (empty status 
 - `/queue`: publishing queue shell
 - `/analytics`: unavailable performance metrics
 
-The public shell contains no private user data. Counts are empty-state placeholders, and no publishing controls are enabled.
+The public shell contains no private library data. The signed-in library count comes from saved content; publishing metrics remain unavailable and publishing controls are not enabled.
 
 ## Credentials
 
@@ -51,15 +51,15 @@ The initial dependency audit reported moderate issues in development lint toolin
 
 The library accepts up to 100 documented `https://go.shopmy.us/p-NUMBER` affiliate links per paste. Product IDs deduplicate within a batch and across saved imports, with a database unique constraint to handle concurrent imports. Original affiliate query attribution is preserved; deduplication ignores query parameters and fragments.
 
-Authentication uses Supabase email OTP in the browser. Server routes validate the bearer token with Supabase `getUser`, restrict the owner email, and use that user's token for database requests. No service-role key is used. Row-level security and an administrator-provisioned membership protect the database even when addressed directly. Private responses use `no-store`. Sign-out removes library data from the UI; data is not stored in application localStorage.
+Authentication uses Supabase one-time email sign-in links in the browser. Server routes validate the bearer token with Supabase `getUser`, restrict the owner email, and use that user's token for database requests. No service-role key is used. Row-level security and an administrator-provisioned membership protect the database even when addressed directly. Private responses use `no-store`. Sign-out removes library data from the UI; data is not stored in application localStorage.
 
 ### Supabase setup
 
 1. Create the Supabase project and apply `supabase/migrations/202611080001_content_library.sql` in its SQL editor.
-2. In Auth, create/confirm the owner's user without emailing a password invitation. Disable public sign-ups. Set the Magic Link email template to display `{{ .Token }}` as the sign-in code. Use custom SMTP for reliable production email delivery (the default sender has recipient restrictions and limits).
+2. In Auth, provision the owner through an invitation. Disable public sign-ups. Set the Site URL to `https://pinbot.annabuchy.com/library`; keep the default one-time sign-in-link template. Use custom SMTP for reliable production email delivery (the default sender has recipient restrictions and limits).
 3. Add that user's UUID to membership using `insert into public.workspace_members (user_id) values ('OWNER_UUID');` as an administrator. No frontend membership writes are allowed.
 4. Configure `.env.local` and Vercel from `.env.example`: project URL, publishable key, and server-only owner email. Redeploy after configuring variables.
-5. Verify owner sign-in, reload persistence, duplicate imports, manual edits, and sign-out. Verify unauthenticated and non-member access is rejected before importing real content.
+5. Verify owner email-link sign-in, reload persistence, duplicate imports, manual edits, and sign-out. Verify unauthenticated and non-member access is rejected before importing real content.
 
 No production cloud setup is implied by the presence of these files. The UI disables saving until configured.
 

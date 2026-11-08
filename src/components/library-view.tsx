@@ -10,7 +10,6 @@ export function LibraryView() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -61,17 +60,8 @@ export function LibraryView() {
       const response = await fetch("/api/auth/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      setSent(true); setMessage("Check your email for your sign-in code.");
-    } catch (e) { setError(e instanceof Error ? e.message : "Couldn’t send your code."); }
-    finally { setBusy(false); }
-  }
-  async function verifyCode(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setError("");
-    try {
-      const { error } = await browserDatabase()!.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
-      if (error) throw new Error("That code is invalid or expired. Request a new code and try again.");
-      setCode(""); setMessage("");
-    } catch (e) { setError(e instanceof Error ? e.message : "Couldn’t sign in."); }
+      setSent(true); setMessage("Check your email and open the one-time sign-in link in this browser.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn’t send your sign-in link."); }
     finally { setBusy(false); }
   }
   async function importLinks(event: React.FormEvent) {
@@ -105,7 +95,7 @@ export function LibraryView() {
   return <>
     {error && <div className="import-alert error" role="alert">{error}{session && <button className="inline-button" disabled={busy} onClick={() => void load()}>Retry loading</button>}</div>}
     {message && <div className="import-alert" role="status">{message}</div>}
-    {!configured ? <section className="import-panel"><p className="eyebrow">PRIVATE CLOUD LIBRARY</p><h2>Your import workspace is being connected.</h2><p>Supabase and sign-in must be configured before links can be saved. Your library will be private to your account.</p><label className="field-label">Paste ShopMy links<textarea rows={4} disabled placeholder="https://go.shopmy.us/p-…"/></label><button className="button primary" disabled>Sign-in setup required</button></section> : !authReady ? <p role="status">Checking your session…</p> : !session ? <section className="import-panel sign-in"><p className="eyebrow">JUST FOR YOU</p><h2>Your finds, in a private place.</h2><p>Sign in to save and edit your links across devices. This workspace is invite-only.</p><form onSubmit={sent ? verifyCode : sendCode}><label className="field-label">Email address<input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required readOnly={sent} maxLength={254}/></label>{sent && <label className="field-label">Sign-in code<input autoComplete="one-time-code" inputMode="numeric" value={code} onChange={event => setCode(event.target.value)} required minLength={6} maxLength={10}/></label>}<div className="form-actions"><button className="button primary" disabled={busy}>{busy ? "Please wait…" : sent ? "Sign in" : "Email me a code"}</button>{sent && <button type="button" className="button quiet" disabled={busy} onClick={() => { setSent(false); setCode(""); setMessage(""); }}>Use another email / resend</button>}</div></form></section> : <>
+    {!configured ? <section className="import-panel"><p className="eyebrow">PRIVATE CLOUD LIBRARY</p><h2>Your import workspace is being connected.</h2><p>Supabase and sign-in must be configured before links can be saved. Your library will be private to your account.</p><label className="field-label">Paste ShopMy links<textarea rows={4} disabled placeholder="https://go.shopmy.us/p-…"/></label><button className="button primary" disabled>Sign-in setup required</button></section> : !authReady ? <p role="status">Checking your session…</p> : !session ? <section className="import-panel sign-in"><p className="eyebrow">JUST FOR YOU</p><h2>Your finds, in a private place.</h2><p>Sign in to save and edit your links across devices. This workspace is invite-only.</p><form onSubmit={sendCode}><label className="field-label">Email address<input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required readOnly={sent} maxLength={254}/></label><div className="form-actions"><button className="button primary" disabled={busy || sent}>{busy ? "Please wait…" : sent ? "Sign-in link sent" : "Email me a sign-in link"}</button>{sent && <button type="button" className="button quiet" disabled={busy} onClick={() => { setSent(false); setMessage(""); }}>Use another email</button>}</div></form></section> : <>
       <div className="library-account"><span>Private library · {session.user.email}</span><button className="inline-button" disabled={busy} onClick={async () => { setBusy(true); const result = await browserDatabase()!.auth.signOut(); if (result.error) setError("Couldn’t sign out. Please try again."); setBusy(false); }}>Sign out</button></div>
       <section className="import-panel"><p className="eyebrow">FROM A LINK TO A LITTLE POSSIBILITY</p><h2>Paste your ShopMy links.</h2><p>One link or a handful. We’ll save each product once, and you can fill in the details when you’re ready.</p><form onSubmit={importLinks}><label className="field-label" htmlFor="affiliate-links">ShopMy affiliate links<textarea id="affiliate-links" rows={4} value={text} onChange={event => setText(event.target.value)} placeholder={'https://go.shopmy.us/p-12345678\nhttps://go.shopmy.us/p-87654321'} maxLength={50000} disabled={busy || !loaded} aria-describedby="link-help"/></label><p id="link-help" className="field-help">Separate links with spaces, commas, or new lines. Up to 100 at a time. Use the go.shopmy.us/p-… link from ShopMy’s Copy button.</p>{previewError && <p className="validation-error" role="alert">{previewError}</p>}{preview && <div className="import-preview" aria-live="polite"><p>{preview.links.length - alreadySaved} new · {preview.duplicates + alreadySaved} duplicates · {preview.invalid.length} invalid</p>{preview.invalid.length > 0 && <><p>Remove these entries before importing:</p><ul>{preview.invalid.slice(0, 5).map((value,index) => <li key={index}>{value}</li>)}</ul>{preview.invalid.length > 5 && <p>And {preview.invalid.length - 5} more invalid entries.</p>}</>}</div>}<div className="form-actions"><button className="button primary" disabled={busy || !loaded || !preview || !!previewError || preview.invalid.length > 0 || preview.links.length === 0}>{busy ? "Saving…" : "Save links to library"}<Icon name="arrow" size={17}/></button><span className="field-help">No ShopMy login or automatic retrieval.</span></div></form></section>
       <p className="source-notice"><Icon name="pin" size={17}/>No approved product-information source is connected yet. Your links save as drafts; add details below. Images are optional until you prepare a Pin.</p>
