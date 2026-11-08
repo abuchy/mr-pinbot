@@ -2,7 +2,7 @@ import robotsParser from 'robots-parser';
 import { authorizedRequest, grantFor, SourceError } from './http';
 import { extractMetadata } from './metadata';
 import { attempt, type Grant, type MetadataProvider, type ProductContext, type Provenance, type Resolver, type Fields } from './model';
-const provenance = (source: string, grant: Grant, locator: string, method: string): Provenance => ({ source, authorizationReference: grant.authorizationReference, locator, method, retrievedAt: new Date().toISOString() });
+const provenance = (source: string, grant: Grant, locator: string, method: string): Provenance => ({ source, authorizationReference: grant.authorizationReference, locator, method, imageUsagePermission:grant.imagesMayBeRepublished===true, retrievedAt: new Date().toISOString() });
 export class EmbeddedDestinationResolver implements Resolver {
   id = 'embedded_destination';
   async resolve(context: ProductContext) {
@@ -71,6 +71,6 @@ export class LicensedFeedProvider implements MetadataProvider {
     const record=matches[0];
     const fields:Fields={product_name:record.product_name,retailer:record.retailer,product_url:record.product_url};
     if (this.feed.imagesMayBeRepublished) fields.image_url=record.image_url;
-    return {fields,provenance:{source:this.id,authorizationReference:this.feed.authorizationReference,retrievedAt:new Date().toISOString(),locator:record.product_url || context.source_key,method:'Exact licensed feed match'},attempts:[attempt('metadata',this.id,'metadata_found','Found an exact match in an authorized product feed. Review before use.')]};
+    return {fields,provenance:{source:this.id,authorizationReference:this.feed.authorizationReference,retrievedAt:new Date().toISOString(),locator:record.product_url || context.source_key,method:'Exact licensed feed match',imageUsagePermission:this.feed.imagesMayBeRepublished===true},attempts:[attempt('metadata',this.id,'metadata_found','Found an exact match in an authorized product feed. Review before use.')]};
   }
 }
