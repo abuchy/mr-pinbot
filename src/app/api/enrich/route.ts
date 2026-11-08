@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { parseShopMyLink, safePublicUrl } from '@/lib/content';
 import { enrichFromAuthorizedSources } from '@/lib/enrichment';
-export const maxDuration = 30;
+export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return privateJson({error:'Request not allowed.'},403);
   try {

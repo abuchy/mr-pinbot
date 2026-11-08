@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { previewImport, validateDetails } from '@/lib/content';
 import { enrichFromAuthorizedSources } from '@/lib/enrichment';
-export const maxDuration=30;
+export const maxDuration=60;
 export async function GET(request: NextRequest) {
   try {
     const auth=await authenticatedDatabase(request);
@@ -35,10 +35,12 @@ export async function POST(request: NextRequest) {
     for(const item of (data||[]).slice(0,1)) {
       try {
         const result=await enrichFromAuthorizedSources(item,item);
+        // Search images are review candidates, never an automatic license to publish.
+        if(result.suggestions.image_url&&!item.image_rights_confirmed&&result.enrichment_report.fields.image_url?.imageUsagePermission!==true)delete result.suggestions.image_url;
         const merged={...item,...result.suggestions};
         const full=merged.product_name&&merged.retailer&&merged.product_url&&merged.image_url;
         const status=full&&input.reviewed===true?'manual':result.enrichment_status;
-        const update={...result.suggestions,enrichment_status:status,enrichment_report:result.enrichment_report,metadata_reviewed:input.reviewed===true,image_rights_confirmed:!!(item.image_rights_confirmed||result.suggestions.image_url),updated_at:new Date().toISOString()};
+        const update={...result.suggestions,enrichment_status:status,enrichment_report:result.enrichment_report,metadata_reviewed:input.reviewed===true,image_rights_confirmed:!!(item.image_rights_confirmed||result.enrichment_report.fields.image_url?.imageUsagePermission===true),updated_at:new Date().toISOString()};
         const saved=await auth.database.from('content_items').update(update).eq('id',item.id).eq('owner_id',auth.user.id).eq('updated_at',item.updated_at);
         if(!saved.error) checked++;
       } catch { /* The saved pending link survives source/configuration failures. */ }

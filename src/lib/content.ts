@@ -4,6 +4,7 @@ export type ContentItem = {
   affiliate_url: string;
   source_key: string;
   product_name: string;
+  product_description: string;
   retailer: string;
   product_url: string;
   image_url: string;
@@ -14,7 +15,7 @@ export type ContentItem = {
   source: "pasted_link" | "official_shopmy_api" | "authorized_browser";
   enrichment_status: "pending" | "partial" | "review_required" | "manual" | "enriched";
   metadata_reviewed: boolean;
-  enrichment_report: { attempts: { stage: string; source: string; code: string; message: string; at: string }[]; checked_at: string | null; fields?: Record<string, { source: string; method: string; retrievedAt: string }> };
+  enrichment_report: { attempts: { stage: string; source: string; code: string; message: string; at: string }[]; checked_at: string | null; image_candidates?: {url:string;label:string;variantConfirmed:boolean}[]; fields?: Record<string, { source: string; method: string; retrievedAt: string; confidence?: string; reviewReason?: string; imageUsagePermission?: boolean }> };
 };
 export type ParsedLink = { affiliate_url: string; source_key: string };
 export type ImportPreview = { links: ParsedLink[]; invalid: string[]; duplicates: number };
@@ -64,13 +65,14 @@ export function safePublicUrl(input: string): boolean {
       !u.hostname.endsWith(".localhost") && !/^[\d.]+$/.test(u.hostname) && !u.hostname.includes(":");
   } catch { return false; }
 }
-export type ProductDetails = Record<'product_name'|'retailer'|'product_url'|'image_url'|'notes',string> & {image_rights_confirmed:boolean};
+export type ProductDetails = Record<'product_name'|'product_description'|'retailer'|'product_url'|'image_url'|'notes',string> & {image_rights_confirmed:boolean};
 export function validateDetails(input: unknown): ProductDetails {
   if (!input || typeof input !== "object") throw new Error("Please check the product details.");
   const value = input as Record<string, unknown>;
-  const limits = { product_name: 300, retailer: 150, product_url: 2048, image_url: 2048, notes: 3000 };
+  const limits = { product_name: 300, product_description:2000, retailer: 150, product_url: 2048, image_url: 2048, notes: 3000 };
   const result: Record<string, string> = {};
   for (const [key, limit] of Object.entries(limits)) {
+    if(key==='product_description'&&value[key]===undefined){result[key]='';continue;}
     if (typeof value[key] !== "string" || value[key].length > limit) throw new Error(`Please check ${key.replaceAll("_", " ")}.`);
     result[key] = value[key].trim();
   }

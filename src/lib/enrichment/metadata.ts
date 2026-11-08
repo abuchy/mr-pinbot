@@ -8,6 +8,7 @@ function absolute(value: unknown, page: string) {
 export function extractMetadata(html: string, page: string): { fields: Fields; method: string } {
   const $ = load(html);
   const og = (name: string) => $(`meta[property="${name}"]`).first().attr('content') ?? '';
+  const twitter=(name:string)=>$(`meta[name="twitter:${name}"]`).first().attr('content')||'';
   const products: Record<string, unknown>[] = [];
   function visit(value: unknown, depth = 0) {
     if (depth > 12 || !value || typeof value !== 'object') return;
@@ -28,6 +29,6 @@ export function extractMetadata(html: string, page: string): { fields: Fields; m
   const offers = Array.isArray(product?.offers) ? product.offers[0] : product?.offers;
   const seller = offers && typeof offers === 'object' ? (offers as Record<string,unknown>).seller : undefined;
   // Brand is not necessarily the retailer. Use seller/site name instead.
-  const fields: Fields = { product_name: text(og('og:title') || product?.name,300), retailer: text((seller && typeof seller === 'object' ? (seller as Record<string,unknown>).name : '') || og('og:site_name'),150), product_url: page, image_url: absolute(og('og:image') || imageUrl,page) };
+  const fields: Fields = { product_name: text(og('og:title') || twitter('title') || product?.name,300), product_description:text(og('og:description')||twitter('description')||product?.description,2000), retailer: text((seller && typeof seller === 'object' ? (seller as Record<string,unknown>).name : '') || og('og:site_name'),150), product_url: page, image_url: absolute(og('og:image') || twitter('image') || imageUrl,page) };
   return { fields, method: product ? 'Product JSON-LD + Open Graph' : 'Open Graph' };
 }

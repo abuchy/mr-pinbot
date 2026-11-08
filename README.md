@@ -75,3 +75,11 @@ Run `npm test` for link canonicalization, duplicate detection, unsafe URL reject
 ## Modular enrichment update
 
 See `docs/enrichment.md` for current behavior, source configuration, status codes, provider research, and operating boundaries. Apply migration `202611080002_modular_enrichment.sql` before deploying the new preview endpoints. Single-link preview returns editable suggestions before save. External resolver/retailer access is configuration-bound; no default network grants or Awin/CJ accounts are configured.
+
+### Search discovery fallback
+
+Single-link checks resolve the public affiliate redirect, then try permitted page metadata and Tavily Search. Search matches must have the same retailer hostname and product pathname; similar products are rejected. Variant IDs remain on the product URL. Search image matches are explicitly unverified variant candidates and do not grant image reuse permission. Candidate URLs remain in the lookup report until reviewed.
+
+The documented Tavily keyless pilot is used by default. For account-backed limits, create an API key at https://app.tavily.com and set `TAVILY_API_KEY` as a **server-only** Vercel environment variable, then redeploy. Never use a `NEXT_PUBLIC_` prefix. Rate limits and authentication failures appear in the lookup report; there is no identity rotation or unattended crawling. Documentation: https://docs.tavily.com/documentation/keyless and https://docs.tavily.com/documentation/api-reference/endpoint/search.
+
+Apply `supabase/migrations/202611080004_search_discovery.sql` before deployment to store optional product descriptions.

@@ -5,13 +5,13 @@ export async function runPipeline(context: ProductContext, current: Fields, pipe
   const report: Report = {attempts:[],checked_at:new Date().toISOString(),fields:{}};
   const suggestions: Fields = {};
   let productUrl=context.product_url;
-  const accept=(fields:Fields, origin?:Provenance) => {
-    for (const key of ['product_name','retailer','product_url','image_url'] as const) {
+  const accept=(fields:Fields, origin?:Provenance, perField?:Partial<Record<keyof Fields,Provenance>>) => {
+    for (const key of ['product_name','product_description','retailer','product_url','image_url'] as const) {
       const value=fields[key];
       if (typeof value!=='string' || !value.trim() || current[key] || suggestions[key]) continue;
       if ((key==='product_url'||key==='image_url') && !safePublicUrl(value)) continue;
-      suggestions[key]=value.trim().slice(0,key==='product_name'?300:key==='retailer'?150:2048);
-      if (origin) report.fields[key]=origin;
+      suggestions[key]=value.trim().slice(0,key==='product_name'?300:key==='retailer'?150:key==='product_description'?2000:2048);
+      if (perField?.[key]||origin) report.fields[key]=perField?.[key]||origin;
     }
   };
   const failure=(stage:'resolution'|'metadata',source:string,error:unknown) => report.attempts.push(attempt(stage,source,error instanceof Error && error.name==='SourceError' && 'code' in error?String(error.code):'source_unavailable',error instanceof Error && error.name==='SourceError'?error.message:'The authorized source could not be reached. Your link is safe; retry later.'));
@@ -22,7 +22,8 @@ export async function runPipeline(context: ProductContext, current: Fields, pipe
   // Catalog/feed providers may match an explicit licensed ID mapping even when
   // an opaque affiliate link has no resolved retailer URL.
   for (const provider of pipeline.providers) {
-    try { const result=await provider.lookup({...context,product_url:productUrl});report.attempts.push(...result.attempts);accept(result.fields,result.provenance);productUrl ||= suggestions.product_url || ''; }
+    if(provider.id==='tavily_search'&&complete({...current,...suggestions}))continue;
+    try { const result=await provider.lookup({...context,product_url:productUrl});report.attempts.push(...result.attempts);accept(result.fields,result.provenance,result.fieldProvenance);if(result.imageCandidates)report.image_candidates=result.imageCandidates;productUrl ||= suggestions.product_url || ''; }
     catch(error){failure('metadata',provider.id,error);}
   }
   const merged={...current,...suggestions};
