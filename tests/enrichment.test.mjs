@@ -45,7 +45,7 @@ test('public ShopMy resolver requests only the supplied URL and decodes Location
  const calls=[];
  const resolver=new ShopMyPublicLinkResolver(async(url,purpose,_grants,options)=>{calls.push([url.href,purpose,options.head]);return {status:302,location:'https://apiv3.shopmy.us/api/redirect_click?url=https%3A%2F%2Fexample.com%2Fp%3Fvariant%3Dblue%26utm_source%3DShopMy',contentType:'',body:''};});
  const result=await resolver.resolve(context);
- assert.equal(result.url,'https://example.com/p?variant=blue');
+ assert.equal(result.url,'https://example.com/p?variant=blue&utm_source=ShopMy');
  assert.deepEqual(calls,[[context.affiliate_url,'redirect',true]]);
 });
 test('Open Graph is preferred over conflicting JSON-LD, with JSON-LD as fallback',()=>{

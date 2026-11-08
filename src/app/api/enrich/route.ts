@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const input=JSON.parse(body),link=parseShopMyLink(input.affiliate_url);
     if(!link) return privateJson({error:'Enter a valid ShopMy affiliate link.'},400);
     const product_url=typeof input.product_url==='string'&&safePublicUrl(input.product_url)?input.product_url:'';
-    const result=await enrichFromAuthorizedSources({...link,product_url},{product_url});
+    const result=await enrichFromAuthorizedSources({...link,product_url},{product_url},auth.database);
     return privateJson({...result,affiliate_url:link.affiliate_url,source_key:link.source_key});
   } catch { return privateJson({error:'Couldn’t check the link. It has not been saved; you can try again.'},503); }
 }

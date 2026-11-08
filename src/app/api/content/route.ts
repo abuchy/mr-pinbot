@@ -28,22 +28,17 @@ export async function POST(request: NextRequest) {
       try { details=validateDetails(input.details); } catch(error){return privateJson({error:error instanceof Error?error.message:'Check product details.'},400);}
     }
     // Save first, before any optional network operation. Duplicates never overwrite edits.
-    const {data,error}=await auth.database.from('content_items').upsert(parsed.links.map(link=>({...link,owner_id:auth.user.id,source:'pasted_link',enrichment_status:'pending',...(details||{}),metadata_reviewed:input.reviewed===true})),{onConflict:'owner_id,source_key',ignoreDuplicates:true}).select('*');
+    const {data,error}=await auth.database.from('content_items').upsert(parsed.links.map(link=>({...link,owner_id:auth.user.id,source:'pasted_link',enrichment_status:'pending',...(details||{}),metadata_reviewed:!!details})),{onConflict:'owner_id,source_key',ignoreDuplicates:true}).select('*');
     if(error) return privateJson({error:'Links could not be saved. Your pasted text is preserved.'},503);
     let checked=0;
     // A bounded, user-triggered lookup, not an unattended crawler. Remaining items stay pending.
     for(const item of (data||[]).slice(0,1)) {
       try {
-        const result=await enrichFromAuthorizedSources(item,item);
-        // Search images are review candidates, never an automatic license to publish.
-        if(result.suggestions.image_url&&!item.image_rights_confirmed&&result.enrichment_report.fields.image_url?.imageUsagePermission!==true){
-          delete result.suggestions.image_url;
-          result.enrichment_status=(item.product_name||result.suggestions.product_name||item.retailer||result.suggestions.retailer)?'partial':'pending';
-        }
+        const result=await enrichFromAuthorizedSources(item,{...item,...(!item.metadata_reviewed?{product_name:''}:{})},auth.database);
         const merged={...item,...result.suggestions};
-        const full=merged.product_name&&merged.retailer&&merged.product_url&&merged.image_url;
-        const status=full&&input.reviewed===true?'manual':result.enrichment_status;
-        const update={...result.suggestions,enrichment_status:status,enrichment_report:result.enrichment_report,metadata_reviewed:input.reviewed===true,image_rights_confirmed:!!(item.image_rights_confirmed||result.enrichment_report.fields.image_url?.imageUsagePermission===true),updated_at:new Date().toISOString()};
+        const full=merged.product_name&&merged.image_url&&merged.product_description;
+        const status=full?'review_required':result.enrichment_status;
+        const update={...result.suggestions,enrichment_status:status,enrichment_report:result.enrichment_report,metadata_reviewed:!!details,updated_at:new Date().toISOString()};
         const saved=await auth.database.from('content_items').update(update).eq('id',item.id).eq('owner_id',auth.user.id).eq('updated_at',item.updated_at);
         if(!saved.error) checked++;
       } catch { /* The saved pending link survives source/configuration failures. */ }

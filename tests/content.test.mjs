@@ -17,11 +17,11 @@ test('rejects empty and oversized imports while reporting invalid entries', () =
   assert.throws(() => previewImport(Array(101).fill('https://go.shopmy.us/p-123').join('\n')));
   assert.equal(previewImport('bad https://go.shopmy.us/p-123').invalid.length, 1);
 });
-const details = { product_name:'Tank', retailer:'Shop', product_url:'', image_url:'', notes:'', image_rights_confirmed:false };
-test('allows partial drafts but requires image permission and safe URLs', () => {
+const details = { product_name:'Tank', website_url:'https://go.shopmy.us/p-123', image_url:'' };
+test('stores four-field drafts without obsolete confirmation requirements', () => {
   assert.equal(validateDetails(details).product_name, 'Tank');
-  assert.throws(() => validateDetails({...details, image_url:'https://example.com/image.jpg'}));
-  assert.throws(() => validateDetails({...details, product_url:'javascript:alert(1)'}));
+  assert.equal(validateDetails({...details, image_url:'https://example.com/image.jpg'}).image_url,'https://example.com/image.jpg');
+  assert.throws(() => validateDetails({...details, website_url:'javascript:alert(1)'}));
   assert.throws(() => validateDetails({...details, product_name:'x'.repeat(301)}));
-  assert.equal(validateDetails({...details, image_url:'https://example.com/image.jpg', image_rights_confirmed:true}).image_rights_confirmed,true);
+  assert.equal('image_rights_confirmed' in validateDetails(details),false);
 });

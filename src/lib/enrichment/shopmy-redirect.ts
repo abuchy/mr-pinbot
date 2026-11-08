@@ -19,7 +19,6 @@ export class ShopMyPublicLinkResolver implements Resolver {
     const embedded=location.searchParams.get('url');
     const target=embedded?new URL(embedded):location;
     if(target.protocol!=='https:'||target.username||target.password||target.port||target.hostname==='shopmy.us'||target.hostname.endsWith('.shopmy.us'))throw new SourceError('destination_unavailable','The first redirect did not identify a retailer product URL.');
-    for(const key of [...target.searchParams.keys()])if(key.startsWith('utm_'))target.searchParams.delete(key);
     return {url:target.href,attempts:[attempt('resolution',this.id,'resolved','Identified the retailer product URL from one public HTTP redirect. No intermediate API was called.')],provenance:{source:this.id,authorizationReference:grants[0].authorizationReference,retrievedAt:new Date().toISOString(),locator:input.origin+input.pathname,method:'HTTP HEAD Location; local destination decoding'}};
   }
 }
