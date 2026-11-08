@@ -44,7 +44,10 @@ export class TavilySearchProvider implements MetadataProvider{
    if(response.status===401||response.status===403)throw new SourceError('search_setup_required','Search access was declined. Configure a valid server-only TAVILY_API_KEY.');
    if(!response.ok)throw new SourceError('search_unavailable','The search provider is unavailable. Direct metadata results are preserved; try again later.');
    const text=await response.text();if(text.length>2_000_000)throw new SourceError('search_response_too_large','Search returned too much data.');
-   const found=matchSearch(context,JSON.parse(text));
+   const payload=JSON.parse(text) as SearchResponse;
+   const pages=(payload.results||[]).slice(0,3).map(hit=>safePublicUrl(hit.url)?hit.url:'').filter(Boolean);
+   attempts.push(attempt('metadata',this.id,'search_result_summary',`Search returned ${payload.results?.length||0} pages. ${pages.length?'Sources checked: '+pages.join(' · '):'No indexed product pages were returned.'}`));
+   const found=matchSearch(context,payload);
    if(found.fields.product_name)matched=found;
    if(found.fields.product_name&&found.fields.image_url)break;
    attempts.push(attempt('metadata',this.id,'search_query_incomplete','No complete product and image match from this query. Trying the next focused product search.'));
