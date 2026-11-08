@@ -17,5 +17,6 @@ export function configuredPipeline(database?:SupabaseClient) {
 export async function enrichFromAuthorizedSources(context: ProductContext, current: Fields = {},database?:SupabaseClient) { const result=await runPipeline(context,current,configuredPipeline(database));
  // Pin descriptions come from the chosen image, never truncated retailer/search copy.
  delete result.suggestions.product_description;
+ if(result.enrichment_report.variant?.source==='search_index')result.enrichment_report.variant_review='Variant identified in an indexed variant URL. Confirm its details before publishing.';
  if(result.enrichment_report.variant?.source==='user_confirmed')result.enrichment_report.variant_review='Colorway uses your saved correction. Image matching is checked separately; retailer variant data is not independently verified.';
  return result; }
