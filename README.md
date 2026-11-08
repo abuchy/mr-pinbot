@@ -45,3 +45,28 @@ Copy `.env.example` to `.env.local` when integrations are added. Environment fil
 ## Dependency review
 
 The initial dependency audit reported moderate issues in development lint tooling through `minimatch`. Production dependencies had no reported advisories at setup. Review upstream fixes before expanding the tooling; avoid forced major-version downgrades.
+
+
+## Paste-first private imports
+
+The library accepts up to 100 documented `https://go.shopmy.us/p-NUMBER` affiliate links per paste. Product IDs deduplicate within a batch and across saved imports, with a database unique constraint to handle concurrent imports. Original affiliate query attribution is preserved; deduplication ignores query parameters and fragments.
+
+Authentication uses Supabase email OTP in the browser. Server routes validate the bearer token with Supabase `getUser`, restrict the owner email, and use that user's token for database requests. No service-role key is used. Row-level security and an administrator-provisioned membership protect the database even when addressed directly. Private responses use `no-store`. Sign-out removes library data from the UI; data is not stored in application localStorage.
+
+### Supabase setup
+
+1. Create the Supabase project and apply `supabase/migrations/202611080001_content_library.sql` in its SQL editor.
+2. In Auth, create/confirm the owner's user without emailing a password invitation. Disable public sign-ups. Set the Magic Link email template to display `{{ .Token }}` as the sign-in code. Use custom SMTP for reliable production email delivery (the default sender has recipient restrictions and limits).
+3. Add that user's UUID to membership using `insert into public.workspace_members (user_id) values ('OWNER_UUID');` as an administrator. No frontend membership writes are allowed.
+4. Configure `.env.local` and Vercel from `.env.example`: project URL, publishable key, and server-only owner email. Redeploy after configuring variables.
+5. Verify owner sign-in, reload persistence, duplicate imports, manual edits, and sign-out. Verify unauthenticated and non-member access is rejected before importing real content.
+
+No production cloud setup is implied by the presence of these files. The UI disables saving until configured.
+
+### Enrichment boundary
+
+`src/lib/enrichment.ts` has no enabled providers. Importing never fetches ShopMy pages, follows affiliate redirects, scrapes retailer pages, calls undocumented APIs, or loads external product imagery. Optional manual product/image URLs are stored as data; image permission must be confirmed. Automatic image previews are deliberately absent so saving a URL cannot silently contact an external host. Enrichment failure must not discard a saved affiliate link.
+
+Future approved API or explicitly authorized browser adapters must document their authorization and field provenance, retain stable source IDs, and pass through the same validation and deduplication boundary. Receiving permission for one workflow must not enable unattended retrieval.
+
+Run `npm test` for link canonicalization, duplicate detection, unsafe URL rejection, batch limits, partial drafts, and image permission checks.
