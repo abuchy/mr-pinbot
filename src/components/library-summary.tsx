@@ -2,28 +2,65 @@
 import { useEffect, useState } from "react";
 import { browserDatabase } from "@/lib/supabase-browser";
 import { Icon } from "./icons";
+
+type LibraryItem = { id: string; product_name: string; image_url: string | null };
+type Approval = {
+  content_id: string;
+  publish_status: string;
+  scheduled_at: string | null;
+  automatic_at: string | null;
+};
+
+async function loadItems<T>(path: string, token: string): Promise<T[] | null> {
+  try {
+    const response = await fetch(path, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.ok ? (await response.json()).items : null;
+  } catch {
+    return null;
+  }
+}
+
+const emptyCounts = { library: 0, awaiting: 0, scheduled: 0, published: 0 };
+
 export function LibrarySummary() {
-  const [count, setCount] = useState<number | null>(null);
+  const [counts, setCounts] = useState(emptyCounts);
   useEffect(() => {
     const database = browserDatabase();
     if (!database) return;
-    let active = true;
     let generation = 0;
     const { data } = database.auth.onAuthStateChange((_event, session) => {
       const current = ++generation;
-      if (!session) { setCount(null); return; }
-      void fetch('/api/content', { cache:'no-store', headers:{ Authorization:`Bearer ${session.access_token}` } })
-        .then(response => response.ok ? response.json() : null)
-        .then(result => { if (active && generation === current) setCount(result?.items?.length ?? null); })
-        .catch(() => { if (active && generation === current) setCount(null); });
+      if (!session) {
+        setCounts(emptyCounts);
+        return;
+      }
+
+      void Promise.all([
+        loadItems<LibraryItem>("/api/content", session.access_token),
+        loadItems<Approval>("/api/publishing-queue", session.access_token),
+      ]).then(([items, approvals]) => {
+        if (generation !== current) return;
+        const approvedIds = new Set(approvals?.map(pin => pin.content_id));
+        setCounts({
+          library: items?.length ?? 0,
+          awaiting: items && approvals
+            ? items.filter(item => item.product_name.trim() && item.image_url && !approvedIds.has(item.id)).length
+            : 0,
+          scheduled: approvals?.filter(pin => pin.publish_status === "queued" && (pin.scheduled_at ?? pin.automatic_at)).length ?? 0,
+          published: approvals?.filter(pin => pin.publish_status === "published").length ?? 0,
+        });
+      });
     });
-    return () => { active = false; data.subscription.unsubscribe(); };
+    return () => { generation++; data.subscription.unsubscribe(); };
   }, []);
   const stats = [
-    {label:'In your library',value:count === null ? '—' : count,note:count === null ? 'Sign in to view your saved finds' : 'Your saved product links',icon:'library' as const},
-    {label:'Awaiting approval',value:'—',note:'Pin review is coming next',icon:'check' as const},
-    {label:'Scheduled Pins',value:'—',note:'Scheduling is not connected',icon:'clock' as const},
-    {label:'Published Pins',value:'—',note:'Publishing is not connected',icon:'pin' as const},
+    {label:'In your library',value:counts.library,note:'Your saved product links',icon:'library' as const},
+    {label:'Awaiting approval',value:counts.awaiting,note:'Pins ready for review',icon:'check' as const},
+    {label:'Scheduled Pins',value:counts.scheduled,note:'Pins queued for publishing',icon:'clock' as const},
+    {label:'Published Pins',value:counts.published,note:'Pins shared to Pinterest',icon:'pin' as const},
   ];
   return <section className="stats-grid" aria-label="Publishing summary">{stats.map(item => <div className="stat" key={item.label}><div className="stat-label">{item.label}<Icon name={item.icon} size={18}/></div><div className="stat-value">{item.value}</div><p>{item.note}</p></div>)}</section>;
 }
