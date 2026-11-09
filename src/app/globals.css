@@ -32,12 +32,42 @@
 }
 .delete-button{background:var(--burgundy);color:white;border-color:var(--burgundy)}
 
-.pin-approval-body { padding: 20px 24px; display: grid; gap: 16px; justify-items: start; }
-.pin-approval-body form, .pin-approval-row { display: grid; gap: 12px; width: 100%; justify-items: start; min-width: 0; }
-.pin-approval-body .field-label { width: min(100%, 480px); }
-.pin-approval-body select { width: 100%; padding: 10px; font: inherit; border: 1px solid var(--line); background: white; }
-.pin-approval-preview { display: flex; align-items: flex-start; gap: 16px; min-width: 0; overflow-wrap: anywhere; }
-.pin-approval-preview img { flex: none; object-fit: cover; }
-.pin-approval-destination { font-size: 11px; color: var(--muted); }
-.pin-approval-row { border-top: 1px solid var(--line); padding-top: 16px; }
-[aria-labelledby="approval-heading"] + .section-panel { margin-top: 20px; }
+.publishing-preferences {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  margin-top: 19px;
+}
+
+.publishing-preferences .field-label { margin: 0; }
+.publishing-preferences select, .import-panel select {
+  width: 100%;
+  min-height: 43px;
+  border: 1px solid var(--line);
+  background: white;
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.queue-heading { margin-top: 30px; }
+.queue-actions { margin: 0 0 20px; }
+.content-card { position: relative; }
+.pin-selection {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  background: white;
+}
+.pin-selection input, .queue-actions input { accent-color: var(--burgundy); }
+@media (max-width: 560px) {
+  .publishing-preferences { grid-template-columns: 1fr; }
+}
+
+.queue-workspace + .section-panel { margin-top: 24px; }

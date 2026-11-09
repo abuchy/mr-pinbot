@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { pinterestConfig, pinterestDatabase } from "@/lib/pinterest";
+import { publishingDailyLimit, publishingZones } from "@/lib/publishing-preferences";
 import { defaultCadence, parseCadence } from "@/lib/publishing-cadence";
 
 export async function GET(request: NextRequest) {
@@ -20,8 +21,12 @@ export async function PUT(request: NextRequest) {
   if (!auth) return privateJson({ error: "Sign in to change cadence settings." }, 401);
   const config = pinterestConfig();
   if (!config) return privateJson({ error: "Pinterest setup is pending." }, 503);
-  const settings = parseCadence(await request.json().catch(() => null));
-  if (!settings) return privateJson({ error: "Check the time zone and allow enough time in the posting window for your daily count and minimum gap." }, 400);
+  const input = await request.json().catch(() => null);
+  if (!Number.isInteger(input?.daily) || input.daily < 1 || input.daily > publishingDailyLimit ||
+      !publishingZones.some(([zone]) => zone === input.zone)) {
+    return privateJson({ error: "Choose a listed time zone and enter 1 to 20 Pins per day." }, 400);
+  }
+  const settings = { daily: input.daily, zone: input.zone, start: "06:00", end: "23:00", gap: 45 };
   const { error } = await pinterestDatabase(config).from("publishing_cadence").upsert({ owner_id: auth.user.id, settings });
   if (error) return privateJson({ error: "Could not save cadence settings." }, 503);
   return privateJson({ settings });

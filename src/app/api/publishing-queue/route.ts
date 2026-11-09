@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { safePublicUrl } from "@/lib/content";
@@ -9,9 +10,11 @@ const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 export async function GET(request: NextRequest) {
   const auth = await authenticatedDatabase(request);
   if (!auth) return privateJson({ error: "Sign in to view the approval queue." }, 401);
-  const config = pinterestConfig();
-  if (!config) return privateJson({ error: "Pinterest setup is pending." }, 503);
-  const result = await pinterestDatabase(config).from("pin_approvals").select(fields)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) return privateJson({ items: [] });
+  const database = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const result = await database.from("pin_approvals").select(fields)
     .eq("owner_id", auth.user.id).order("approved_at").order("id");
   if (result.error) return privateJson({ error: "The approval queue is unavailable." }, 503);
   return privateJson({ items: result.data });

@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
   const bookmark = request.nextUrl.searchParams.get("bookmark") || undefined;
   if (bookmark && bookmark.length > 2048) return privateJson({ error: "Invalid board cursor." }, 400);
   const load = async (token: string) => {
+    if (request.nextUrl.searchParams.has("profileOnly")) {
+      return privateJson({ status: "connected", tier: tier(), profile: await pinterestProfile(token) });
+    }
     const [profile, boards] = await Promise.all([
       bookmark ? null : pinterestProfile(token),
       pinterestBoards(token, bookmark),

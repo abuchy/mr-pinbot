@@ -19,6 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const full=details.product_name&&details.website_url&&details.image_url&&details.product_description;
     const enrichment_status=full?'review_required':details.product_name?'partial':'pending';
     const { data, error } = await auth.database.from("content_items").update({ ...details, original_image_url, metadata_reviewed:true, enrichment_status, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
+    if (error?.code === "23514") return privateJson({ error: error.message }, 409);
     if (error) return privateJson({ error: "Couldn’t save your changes. Please try again." }, 503);
     if (!data) return privateJson({ error: "This item changed in another tab. Refresh the library before editing again." }, 409);
     return privateJson({ saved: true });
@@ -37,6 +38,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const input = JSON.parse(body);
     if (typeof input.updated_at !== "string" || !Number.isFinite(Date.parse(input.updated_at))) return privateJson({ error: "Refresh the library before deleting this item." }, 400);
     const { data, error } = await auth.database.from("content_items").delete().eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
+    if (error?.code === "23514") return privateJson({ error: error.message }, 409);
     if (error) return privateJson({ error: "Couldn’t delete this item. Please try again." }, 503);
     if (!data) return privateJson({ error: "This item changed or was already deleted. Refresh the library and try again." }, 409);
     return privateJson({ deleted: true });
