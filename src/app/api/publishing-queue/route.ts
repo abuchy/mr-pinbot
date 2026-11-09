@@ -3,7 +3,7 @@ import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { safePublicUrl } from "@/lib/content";
 import { connectionTable, pinterestBoard, pinterestConfig, pinterestDatabase, PinterestError, pinterestProfile, refreshAccess } from "@/lib/pinterest";
 
-const fields = "id,content_id,pinterest_account,board_id,board_name,title,description,image_url,destination_url,approved_at";
+const fields = "id,content_id,pinterest_account,board_id,board_name,title,description,image_url,destination_url,approved_at,scheduled_at";
 const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 
 export async function GET(request: NextRequest) {
@@ -83,4 +83,29 @@ export async function DELETE(request: NextRequest) {
     .eq("owner_id", auth.user.id).eq("id", id);
   if (result.error) return privateJson({ error: "Could not remove the approval." }, 503);
   return privateJson({ removed: true });
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!sameOrigin(request)) return privateJson({ error: "Request not allowed." }, 403);
+  const auth = await authenticatedDatabase(request);
+  if (!auth) return privateJson({ error: "Sign in to schedule a Pin." }, 401);
+  const config = pinterestConfig();
+  if (!config) return privateJson({ error: "Pinterest setup is pending." }, 503);
+
+  const input = await request.json().catch(() => null);
+  if (!input || typeof input.id !== "string" || !uuid.test(input.id)) {
+    return privateJson({ error: "Choose an approved Pin." }, 400);
+  }
+  const time = typeof input.scheduledAt === "string" ? new Date(input.scheduledAt) : null;
+  if (input.scheduledAt !== null && (!time || !Number.isFinite(time.getTime()) ||
+      time.toISOString() !== input.scheduledAt || time.getTime() <= Date.now())) {
+    return privateJson({ error: "Choose a publishing time in the future." }, 400);
+  }
+
+  const result = await pinterestDatabase(config).from("pin_approvals")
+    .update({ scheduled_at: time?.toISOString() ?? null })
+    .eq("owner_id", auth.user.id).eq("id", input.id).select(fields).maybeSingle();
+  if (result.error) return privateJson({ error: "Could not save the publishing time." }, 503);
+  if (!result.data) return privateJson({ error: "This approval is no longer in the queue." }, 404);
+  return privateJson({ item: result.data });
 }

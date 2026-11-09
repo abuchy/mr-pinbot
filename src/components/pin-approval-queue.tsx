@@ -6,7 +6,7 @@ import type { ContentItem } from "@/lib/content";
 import { browserDatabase } from "@/lib/supabase-browser";
 
 type Preview = { title: string; description: string; image_url: string; destination_url: string };
-type Approval = Preview & { id: string; content_id: string; board_name: string; pinterest_account: string };
+type Approval = Preview & { id: string; content_id: string; board_name: string; pinterest_account: string; scheduled_at: string | null };
 type Board = { id: string; name: string };
 type BoardPage = { profile?: { username: string }; boards?: Board[]; bookmark?: string };
 
@@ -33,6 +33,36 @@ function PinPreview({ pin }: { pin: Preview }) {
       <p className="pin-approval-destination">Destination: {pin.destination_url}</p>
     </div>
   </div>;
+}
+
+function ScheduleEditor({ pin, busy, onSave }: {
+  pin: Approval;
+  busy: boolean;
+  onSave: (time: string | null) => void;
+}) {
+  const [time, setTime] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  return <form onSubmit={event => {
+    event.preventDefault();
+    const date = new Date(time);
+    if (!Number.isFinite(date.getTime()) || date.getTime() <= Date.now()) {
+      setInvalid(true);
+      return;
+    }
+    onSave(date.toISOString());
+  }}>
+    <label className="field-label">Lock publishing time ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+      <input type="datetime-local" value={time} disabled={busy} required onChange={event => {
+        setTime(event.target.value);
+        setInvalid(false);
+      }}/>
+    </label>
+    {invalid && <p role="alert">Choose a future date and time.</p>}
+    <div className="form-actions">
+      <button className="button quiet" disabled={busy || !time}>Save time</button>
+      {pin.scheduled_at && <button type="button" className="button quiet" disabled={busy} onClick={() => onSave(null)}>Clear time</button>}
+    </div>
+  </form>;
 }
 
 export function PinApprovalQueue() {
@@ -107,7 +137,7 @@ export function PinApprovalQueue() {
         <button className="button quiet" onClick={() => void run(load)}>Try again</button>
       </div>)}
       {loaded && <>
-        <p className="muted">Approved Pins are saved here and wait for scheduling.</p>
+        <p className="muted">You can lock a time for any approved Pin. Automatic publishing is not active yet.</p>
         <form onSubmit={event => {
           event.preventDefault();
           if (!selected || !board || !account || busy) return;
@@ -145,9 +175,19 @@ export function PinApprovalQueue() {
           </>}
         </form>
         <button className="button quiet" disabled={busy} onClick={() => void run(async () => { await load(); if (account) await loadBoards(); })}>Refresh library and approvals</button>
-        {approvals.map(pin => <article className="pin-approval-row" key={pin.id}>
+        {[...approvals].sort((a, b) => {
+          if (!a.scheduled_at) return b.scheduled_at ? 1 : 0;
+          if (!b.scheduled_at) return -1;
+          return Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at);
+        }).map(pin => <article className="pin-approval-row" key={pin.id}>
           <PinPreview pin={pin}/>
-          <p className="muted">{pin.board_name} · @{pin.pinterest_account} · Awaiting scheduling</p>
+          <p className="muted">{pin.board_name} · @{pin.pinterest_account} · {pin.scheduled_at ? new Date(pin.scheduled_at).toLocaleString() : "Awaiting scheduling"}</p>
+          <ScheduleEditor key={pin.scheduled_at ?? "unscheduled"} pin={pin} busy={busy} onSave={scheduledAt => void run(async () => {
+            const { item } = await request<{ item: Approval }>("/api/publishing-queue", {
+              method: "PATCH", body: JSON.stringify({ id: pin.id, scheduledAt }),
+            });
+            setApprovals(previous => previous.map(approval => approval.id === item.id ? item : approval));
+          })}/>
           <button className="button quiet" disabled={busy} onClick={() => void run(async () => {
             await request("/api/publishing-queue?" + new URLSearchParams({ id: pin.id }), { method: "DELETE" });
             setApprovals(previous => previous.filter(item => item.id !== pin.id));
