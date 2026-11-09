@@ -3,7 +3,7 @@ import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { safePublicUrl } from "@/lib/content";
 import { connectionTable, pinterestBoard, pinterestConfig, pinterestDatabase, PinterestError, pinterestProfile, refreshAccess } from "@/lib/pinterest";
 
-const fields = "id,content_id,pinterest_account,board_id,board_name,title,description,image_url,destination_url,approved_at,scheduled_at,automatic_at";
+const fields = "id,content_id,pinterest_account,board_id,board_name,title,description,image_url,destination_url,approved_at,scheduled_at,automatic_at,publish_status,published_at,pinterest_pin_id,publish_error";
 const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 
 export async function GET(request: NextRequest) {
@@ -80,8 +80,9 @@ export async function DELETE(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   if (!id || !uuid.test(id)) return privateJson({ error: "Choose an approved Pin." }, 400);
   const result = await pinterestDatabase(config).from("pin_approvals").delete()
-    .eq("owner_id", auth.user.id).eq("id", id);
+    .eq("owner_id", auth.user.id).eq("id", id).in("publish_status", ["queued", "failed"]).select("id").maybeSingle();
   if (result.error) return privateJson({ error: "Could not remove the approval." }, 503);
+  if (!result.data) return privateJson({ error: "This approval cannot be removed." }, 409);
   return privateJson({ removed: true });
 }
 
@@ -104,7 +105,7 @@ export async function PATCH(request: NextRequest) {
 
   const result = await pinterestDatabase(config).from("pin_approvals")
     .update({ scheduled_at: time?.toISOString() ?? null })
-    .eq("owner_id", auth.user.id).eq("id", input.id).select(fields).maybeSingle();
+    .eq("owner_id", auth.user.id).eq("id", input.id).eq("publish_status", "queued").select(fields).maybeSingle();
   if (result.error) return privateJson({ error: "Could not save the publishing time." }, 503);
   if (!result.data) return privateJson({ error: "This approval is no longer in the queue." }, 404);
   return privateJson({ item: result.data });

@@ -7,7 +7,7 @@ import { defaultCadence, type Cadence } from "@/lib/publishing-cadence";
 import { browserDatabase } from "@/lib/supabase-browser";
 
 type Preview = { title: string; description: string; image_url: string; destination_url: string };
-type Approval = Preview & { id: string; content_id: string; board_name: string; pinterest_account: string; scheduled_at: string | null; automatic_at: string | null };
+type Approval = Preview & { id: string; content_id: string; board_name: string; pinterest_account: string; scheduled_at: string | null; automatic_at: string | null; publish_status: string; pinterest_pin_id: string | null; publish_error: string | null };
 type Board = { id: string; name: string };
 type BoardPage = { profile?: { username: string }; boards?: Board[]; bookmark?: string };
 
@@ -153,7 +153,7 @@ export function PinApprovalQueue() {
         <button className="button quiet" onClick={() => void run(load)}>Try again</button>
       </div>)}
       {loaded && <>
-        <p className="muted">The saved schedule updates around locked times. Automatic publishing is not active yet.</p>
+        <p className="muted">The saved schedule updates around locked times.</p>
         <form onSubmit={event => {
           event.preventDefault();
           void run(async () => {
@@ -215,16 +215,20 @@ export function PinApprovalQueue() {
         ).map(pin => <article className="pin-approval-row" key={pin.id}>
           <PinPreview pin={pin}/>
           <p className="muted">{pin.board_name} · @{pin.pinterest_account} · {effectiveTime(pin) ? displayTime(effectiveTime(pin)!) + (pin.scheduled_at ? " (locked)" : " (automatic)") : "Awaiting scheduling"}</p>
-          <ScheduleEditor key={pin.scheduled_at ?? "unscheduled"} pin={pin} busy={busy} onSave={scheduledAt => void run(async () => {
+          {pin.publish_status !== "queued" && <p>{({
+            publishing: "Publishing", published: "Published", failed: "Failed", needs_verification: "Needs verification",
+          } as Record<string, string>)[pin.publish_status]}{pin.publish_error && " · " + pin.publish_error}</p>}
+          {pin.pinterest_pin_id && <a className="text-link" href={"https://www.pinterest.com/pin/" + pin.pinterest_pin_id + "/"} target="_blank" rel="noreferrer">View Pin on Pinterest ↗</a>}
+          {pin.publish_status === "queued" && <ScheduleEditor key={pin.scheduled_at ?? "unscheduled"} pin={pin} busy={busy} onSave={scheduledAt => void run(async () => {
             await request("/api/publishing-queue", {
               method: "PATCH", body: JSON.stringify({ id: pin.id, scheduledAt }),
             });
             await refreshApprovals();
-          })}/>
-          <button className="button quiet" disabled={busy} onClick={() => void run(async () => {
+          })}/>}
+          {["queued", "failed"].includes(pin.publish_status) && <button className="button quiet" disabled={busy} onClick={() => void run(async () => {
             await request("/api/publishing-queue?" + new URLSearchParams({ id: pin.id }), { method: "DELETE" });
             await refreshApprovals();
-          })}>Remove from queue</button>
+          })}>Remove from queue</button>}
         </article>)}
       </>}
     </div>

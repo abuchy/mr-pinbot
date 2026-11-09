@@ -167,3 +167,18 @@ export async function pinterestBoards(token: string, bookmark?: string) {
     bookmark: result.bookmark || null,
   };
 }
+
+export async function createPinterestPin(token: string, pin: {
+  board_id: string; title: string; description: string; image_url: string; destination_url: string;
+}) {
+  const result = await pinterestRequest<{ id: string }>("pins", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      board_id: pin.board_id, title: pin.title, description: pin.description, link: pin.destination_url,
+      media_source: { source_type: "image_url", url: pin.image_url },
+    }),
+  });
+  if (typeof result.id !== "string" || !/^\d+$/.test(result.id)) throw new Error("Pinterest returned no Pin ID.");
+  return result.id;
+}
