@@ -190,3 +190,24 @@ export async function createPinterestPin(token: string, pin: {
   if (typeof result.id !== "string" || !/^\d+$/.test(result.id)) throw new Error("Pinterest returned no Pin ID.");
   return result.id;
 }
+
+export const trialBoardName = "Mr. Pinbot Trial";
+
+export async function ensurePinterestSandboxBoard(token: string) {
+  let cursor: string | undefined;
+  for (let page = 0; page < 20; page++) {
+    const result = await pinterestBoards(token, cursor, true);
+    const existing = result.boards.find(board => board.name === trialBoardName);
+    if (existing) return existing;
+    if (!result.bookmark) {
+      const board = await pinterestRequest<{ id: string; name: string }>("boards", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trialBoardName, privacy: "PUBLIC" }),
+      }, true);
+      return { id: board.id, name: board.name };
+    }
+    cursor = result.bookmark;
+  }
+  throw new Error("Sandbox board listing did not finish.");
+}

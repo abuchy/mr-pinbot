@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import {
-  connectionTable, oauthCookie, oauthLifetime, oauthPath, pinterestBoards, pinterestConfig,
+  connectionTable, ensurePinterestSandboxBoard, oauthCookie, oauthLifetime, oauthPath, pinterestBoards, pinterestConfig,
   PinterestError, pinterestProfile, refreshAccess, scopes, stateHash,
 } from "@/lib/pinterest";
 
@@ -76,6 +76,33 @@ export async function POST(request: NextRequest) {
   const config = pinterestConfig();
   if (!config || config.callback.host !== request.headers.get("host")) {
     return privateJson({ error: "Pinterest OAuth is not configured for this domain." }, 503);
+  }
+
+  if (request.nextUrl.searchParams.get("environment") === "sandbox") {
+    const token = process.env.PINTEREST_SANDBOX_ACCESS_TOKEN?.trim();
+    if (!token || tier() !== "trial" || auth.user.id !== process.env.PINBOT_PUBLISH_OWNER_ID) {
+      return privateJson({ error: "Pinterest Sandbox is not configured for this workspace." }, 403);
+    }
+    try {
+      const { data: row, error } = await connectionTable(config)
+        .select("owner_id,revision,token_ciphertext,access_expires_at,reconnect_required")
+        .eq("owner_id", auth.user.id).maybeSingle();
+      if (error) return privateJson({ error: "Could not check the Pinterest connection." }, 503);
+      if (!row) return privateJson({ error: "Connect Pinterest first." }, 409);
+      const [connected, sandbox] = await Promise.all([
+        refreshAccess(config, row).then(access => pinterestProfile(access)),
+        pinterestProfile(token, true),
+      ]);
+      if (connected.username !== sandbox.username) {
+        return privateJson({ error: "The Sandbox token belongs to a different Pinterest account." }, 409);
+      }
+      const board = await ensurePinterestSandboxBoard(token);
+      return privateJson({ profile: sandbox, boards: [board], bookmark: null });
+    } catch (error) {
+      const upstream = error instanceof PinterestError ? error.upstream : undefined;
+      const detail = upstream ? ` (${upstream.operation}, HTTP ${upstream.httpStatus}${upstream.code === undefined ? "" : `, Pinterest code ${upstream.code}`})` : "";
+      return privateJson({ error: "Could not prepare the Sandbox test board." + detail }, 502);
+    }
   }
 
   const state = randomBytes(32).toString("base64url");

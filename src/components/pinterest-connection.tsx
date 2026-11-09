@@ -31,7 +31,7 @@ export function PinterestConnection() {
   const [sandboxError, setSandboxError] = useState("");
   const [sandboxBusy, setSandboxBusy] = useState(false);
 
-  async function loadSandboxBoards(cursor?: string) {
+  async function loadSandboxBoards(cursor?: string, create = false) {
     setSandboxBusy(true);
     setSandboxError("");
     try {
@@ -40,6 +40,7 @@ export function PinterestConnection() {
       const query = new URLSearchParams({ environment: "sandbox" });
       if (cursor) query.set("bookmark", cursor);
       const response = await fetch("/api/pinterest?" + query, {
+        method: create ? "POST" : "GET",
         headers: { Authorization: "Bearer " + session.access_token }, cache: "no-store",
       });
       const data = await response.json();
@@ -146,9 +147,10 @@ export function PinterestConnection() {
       {connection?.tier === "trial" && connection.status !== "setup_required" && <p>Pins created through Trial access are visible only to their creator.</p>}
       {connection?.tier === "trial" && connection.status === "connected" && <div>
         <button className="button quiet" disabled={sandboxBusy} onClick={() => void loadSandboxBoards()}>Check Sandbox boards</button>
+        <button className="button quiet" disabled={sandboxBusy} onClick={() => void loadSandboxBoards(undefined, true)}>Create Mr. Pinbot Trial board</button>
         {sandboxError && <p role="alert">{sandboxError}</p>}
         {sandboxBoards && <p role="status">{sandboxBoards.length
-          ? "Sandbox boards: " + sandboxBoards.map(board => board.name).join(" · ")
+          ? "Sandbox boards: " + sandboxBoards.map(board => `${board.name} (${board.id})`).join(" · ")
           : sandboxCursor ? "No Sandbox boards on this page." : "No public Sandbox boards found."}</p>}
         {sandboxCursor && <button className="button quiet" disabled={sandboxBusy} onClick={() => void loadSandboxBoards(sandboxCursor)}>Load more Sandbox boards</button>}
       </div>}
