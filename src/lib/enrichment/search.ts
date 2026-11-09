@@ -1,4 +1,5 @@
 import {attempt, type Fields, type MetadataProvider, type ProductContext, type Provenance, type Variant} from './model';
+import {isBlockedMetadata} from './blocked';
 import {SourceError} from './http';
 import {safePublicUrl} from '../content';
 import {variantTitle} from './variants';
@@ -9,7 +10,7 @@ const words=(value:string)=>value.toLowerCase().normalize('NFKC').replace(/[^a-z
 function sameProduct(a:string,b:string){try{const x=new URL(a),y=new URL(b);return x.hostname.replace(/^www\./,'')===y.hostname.replace(/^www\./,'')&&x.pathname.replace(/\/$/,'')===y.pathname.replace(/\/$/,'');}catch{return false;}}
 export function matchSearch(context:ProductContext,response:SearchResponse){
  const wanted=new URL(context.product_url).searchParams.get('variant');
- const hits=(response.results||[]).filter(hit=>safePublicUrl(hit.url)&&sameProduct(hit.url,context.product_url)&&(!wanted||!!context.variant||!new URL(hit.url).searchParams.get('variant')||new URL(hit.url).searchParams.get('variant')===wanted)).sort((a,b)=>Number(new URL(b.url).searchParams.get('variant')===wanted)-Number(new URL(a.url).searchParams.get('variant')===wanted));
+ const hits=(response.results||[]).filter(hit=>!isBlockedMetadata(hit.title)&&safePublicUrl(hit.url)&&sameProduct(hit.url,context.product_url)&&(!wanted||!!context.variant||!new URL(hit.url).searchParams.get('variant')||new URL(hit.url).searchParams.get('variant')===wanted)).sort((a,b)=>Number(new URL(b.url).searchParams.get('variant')===wanted)-Number(new URL(a.url).searchParams.get('variant')===wanted));
  if(!hits.length)return {fields:{} as Fields,images:[] as SearchImage[],provenance:{} as Partial<Record<keyof Fields,Provenance>>};
  const hit=hits[0],url=new URL(context.product_url);
  const parts=hit.title.split(/\s+[–—|]\s+|\s+-\s+/);
@@ -34,7 +35,7 @@ export class TavilySearchProvider implements MetadataProvider{
  constructor(private apiKey='',private http:typeof fetch=fetch){}
  async lookup(context:ProductContext){
   if(!context.product_url)return {fields:{},attempts:[attempt('metadata',this.id,'search_identity_missing','Search needs a retailer URL or product identity; no unrelated product was selected.')]};
-  const url=new URL(context.product_url),slug=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'').replace(/[-_]+/g,' ');
+  const url=new URL(context.product_url),slug=decodeURIComponent(url.pathname.split('/').filter(Boolean).slice(-2).join(' ')).replace(/\.html$/i,'').replace(/[-_]+/g,' ');
   const colorQuery=context.variant?.label.split(/\s+and\s+/i).map(part=>`"${part.replaceAll('"','')}"`).join(' ');
   const queries=colorQuery?[`site:${url.hostname}${url.pathname} ${colorQuery}`,`site:${url.hostname} ${slug} ${colorQuery}`]:url.searchParams.get('variant')?[`site:${url.hostname}${url.pathname} "${url.searchParams.get('variant')}"`,`site:${url.hostname}${url.pathname} ${slug}`]:[`site:${url.hostname}${url.pathname} ${slug}`];
   const collected:SearchResponse={results:[],images:[]};

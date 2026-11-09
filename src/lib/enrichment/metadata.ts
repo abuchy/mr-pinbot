@@ -1,4 +1,5 @@
 import { load } from 'cheerio';
+import { isBlockedMetadata } from './blocked';
 import type { Fields } from './model';
 function text(value: unknown, limit: number) { return typeof value === 'string' ? value.trim().slice(0, limit) : ''; }
 function absolute(value: unknown, page: string) {
@@ -29,6 +30,20 @@ export function extractMetadata(html: string, page: string): { fields: Fields; m
   const offers = Array.isArray(product?.offers) ? product.offers[0] : product?.offers;
   const seller = offers && typeof offers === 'object' ? (offers as Record<string,unknown>).seller : undefined;
   // Brand is not necessarily the retailer. Use seller/site name instead.
-  const fields: Fields = { product_name: text(og('og:title') || twitter('title') || product?.name,300), product_description:text(og('og:description')||twitter('description')||product?.description,2000), retailer: text((seller && typeof seller === 'object' ? (seller as Record<string,unknown>).name : '') || og('og:site_name'),150), product_url: page, image_url: absolute(og('og:image') || twitter('image') || imageUrl,page) };
-  return { fields, method: product ? 'Product JSON-LD + Open Graph' : 'Open Graph' };
+  const pageTitle = $('title').first().text();
+  const title = [og('og:title'), twitter('title'), product?.name, pageTitle];
+  if (!product && [pageTitle, title[0], title[1]].some(isBlockedMetadata)) {
+    return { fields: {}, method: 'Blocked page' };
+  }
+  const pick = (values: unknown[], limit: number) =>
+    values.map(value => text(value, limit)).find(value => value && !isBlockedMetadata(value)) || '';
+  const fields: Fields = {
+    product_name: pick(title, 300),
+    product_description: pick([og('og:description'), twitter('description'), product?.description,
+      $('meta[name="description"]').first().attr('content')], 2000),
+    retailer: text((seller && typeof seller === 'object' ? (seller as Record<string,unknown>).name : '') || og('og:site_name'),150),
+    product_url: page,
+    image_url: absolute(og('og:image') || twitter('image') || imageUrl,page),
+  };
+  return { fields, method: product ? 'Product JSON-LD + page metadata' : 'Page metadata' };
 }

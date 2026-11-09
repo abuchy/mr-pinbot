@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
+import { isBlockedMetadata } from "@/lib/enrichment/blocked";
 import { safePublicUrl } from "@/lib/content";
 import { connectionTable, pinterestBoard, pinterestConfig, pinterestDatabase, pinterestProfile, refreshAccess } from "@/lib/pinterest";
 
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     const versions: Record<string, string> = {};
     const skipped: string[] = [];
     for (const item of items.data) {
-      if (!item.product_name.trim() || [...item.product_name].length > 100 ||
+      if (!item.product_name.trim() || isBlockedMetadata(item.product_name) || isBlockedMetadata(item.product_description) || [...item.product_name].length > 100 ||
           [...item.product_description].length > 500 || !item.image_url || !safePublicUrl(item.image_url) ||
           !safePublicUrl(item.website_url || item.affiliate_url)) {
         skipped.push(`${item.product_name || "Untitled Pin"}: add a title (up to 100 characters), public HTTPS image and destination, and keep the description within 500 characters.`);

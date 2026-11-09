@@ -1,4 +1,5 @@
 import { attempt, complete, type Fields, type MetadataProvider, type ProductContext, type Provenance, type Report, type Resolver, type Result } from './model';
+import { isBlockedMetadata } from './blocked';
 import { safePublicUrl } from '../content';
 export type Pipeline = { resolvers: readonly Resolver[]; providers: readonly MetadataProvider[] };
 export async function runPipeline(context: ProductContext, current: Fields, pipeline: Pipeline): Promise<Result> {
@@ -9,6 +10,11 @@ export async function runPipeline(context: ProductContext, current: Fields, pipe
     for (const key of ['product_name','product_description','retailer','product_url','image_url'] as const) {
       const value=fields[key];
       if (typeof value!=='string' || !value.trim()) continue;
+      if ((key === 'product_name' || key === 'product_description') && isBlockedMetadata(value)) {
+        report.attempts.push(attempt('metadata', origin?.source ?? perField?.[key]?.source ?? 'catalog_registry',
+          'blocked_metadata', 'An access error was returned in place of product details.'));
+        continue;
+      }
       if(current[key]===value.trim()&&(perField?.[key]||origin))report.fields[key]=perField?.[key]||origin;
       if(current[key]||suggestions[key])continue;
       if(key==='image_url'&&productUrl&&new URL(productUrl).searchParams.has('variant')&&!perField?.image_url&&variant?.image_url!==value)continue;
@@ -25,7 +31,7 @@ export async function runPipeline(context: ProductContext, current: Fields, pipe
   // Catalog/feed providers may match an explicit licensed ID mapping even when
   // an opaque affiliate link has no resolved retailer URL.
   for (const provider of pipeline.providers) {
-    if(provider.id==='tavily_search'&&complete({...current,...suggestions})&&!new URL(productUrl).searchParams.has('variant'))continue;
+    if(provider.id==='tavily_search'&&complete({...current,...suggestions})&&productUrl&&!new URL(productUrl).searchParams.has('variant'))continue;
     try { const result=await provider.lookup({...context,product_url:productUrl,variant});report.attempts.push(...result.attempts);if(result.variant){variant=result.variant;report.variant=variant;}accept(result.fields,result.provenance,result.fieldProvenance);if(result.imageCandidates)report.image_candidates=result.imageCandidates;productUrl ||= suggestions.product_url || ''; }
     catch(error){failure('metadata',provider.id,error);}
   }

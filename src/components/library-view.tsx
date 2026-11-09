@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { browserDatabase } from "@/lib/supabase-browser";
 import { previewImport, safePublicUrl, type ContentItem } from "@/lib/content";
+import { isBlockedMetadata } from "@/lib/enrichment/blocked";
 import { processImportQueue, type ImportProgress } from "@/lib/import-queue";
 import { ProductFields } from "./product-fields";
 import { Icon } from "./icons";
@@ -164,7 +165,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
       const newItems: ContentItem[] = result.items;
       setText("");
       setMessage(`${result.added} saved · ${result.duplicates} duplicates skipped`);
-      setFilter("All content");
+      setFilter("Drafts");
       setQuery("");
       setItems(previous => [...newItems, ...previous.filter(item => !newItems.some(saved => saved.id === item.id))]);
       await enrichItems(newItems);
@@ -223,7 +224,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
   if (text.trim()) { try { preview = previewImport(text); } catch (e) { previewError = e instanceof Error ? e.message : "Check your links."; } }
   const existing = new Set(items.map(item => item.source_key));
   const alreadySaved = preview?.links.filter(link => existing.has(link.source_key)).length ?? 0;
-  const needsDetails = (item: ContentItem) => !item.product_name || !(item.website_url||item.affiliate_url) || !item.image_url || !item.product_description;
+  const needsDetails = (item: ContentItem) => (!item.product_name || isBlockedMetadata(item.product_name)) || !(item.website_url||item.affiliate_url) || !item.image_url || !item.product_description;
   const statuses = Object.values(progress);
   const finished = statuses.filter(status => status === 'completed').length;
   const attention = statuses.filter(status => status === 'attention').length;
@@ -374,7 +375,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         return <article className="content-card" key={item.id}>{queue && <label className="pin-selection"><input type="checkbox"
         aria-label={`Select ${item.product_name || "draft Pin"}`} disabled={busy || !!locked}
         checked={selected.includes(item.id)} onChange={event => setSelection(previous => event.target.checked
-          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{item.product_name || "Product details pending"}</h3><a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{item.product_description && <p>{item.product_description}</p>}
+          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3><a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{item.product_description && !isBlockedMetadata(item.product_description) && <p>{item.product_description}</p>}
         {job && publicationDetails(job)}
         {!locked && <>{progress[item.id] === 'queued' || progress[item.id] === 'processing'
         ? <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>

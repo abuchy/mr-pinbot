@@ -53,6 +53,7 @@ export class PermittedPageProvider implements MetadataProvider {
     if (res.status === 403 || res.status === 401) throw new SourceError('source_restricted','The retailer declined automated access.');
     if (res.status !== 200 || !res.contentType.includes('text/html')) throw new SourceError('metadata_unavailable','No permitted HTML product response was available.');
     const parsed = extractMetadata(res.body,url.href);
+    if (parsed.method === 'Blocked page') throw new SourceError('source_restricted', 'The retailer returned an access-block page instead of product details.');
     // A permitted metadata image can be saved as a reference without asserting a publishing license.
     return {fields:parsed.fields,provenance:provenance(this.id,grant,url.origin+url.pathname,parsed.method),attempts:[attempt('metadata',this.id,'metadata_found','Read available product metadata from a permitted page; review the details before use.')]};
   }

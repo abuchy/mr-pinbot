@@ -3,6 +3,7 @@ import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { enrichFromAuthorizedSources } from '@/lib/enrichment';
 import { hostEnrichedImage, storeProductImage } from '@/lib/product-images';
 import { describeImage } from '@/lib/description';
+import { isBlockedMetadata } from '@/lib/enrichment/blocked';
 import type { Fields } from '@/lib/enrichment/model';
 import type { ContentItem } from '@/lib/content';
 
@@ -29,10 +30,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (claim.error || !claim.data) return privateJson({ error: 'This Pin changed. Refresh before retrying.' }, 409);
 
     const fields: Fields & { original_image_url?: string } = {};
+    if (isBlockedMetadata(item.product_name)) fields.product_name = '';
+    if (isBlockedMetadata(item.product_description)) fields.product_description = '';
+    // Re-resolve drafts saved before affiliate-network destinations were decoded.
+    if (item.product_url && /^https:\/\/click\.linksynergy\.com(?:\/|$)/i.test(item.product_url)) fields.product_url = '';
+    const current = { ...item, ...fields };
     let notice = '';
     let report = claimedReport;
-    if (!item.product_name || !item.image_url || (report.variant_review && report.variant?.source !== 'user_confirmed')) {
-      const result = await enrichFromAuthorizedSources(item, item, database);
+    if (!current.product_name || !current.image_url || !current.product_url || (report.variant_review && report.variant?.source !== 'user_confirmed')) {
+      const result = await enrichFromAuthorizedSources(current, current, database);
       const hosted = await hostEnrichedImage(result, database, user.id);
       Object.assign(fields, result.suggestions);
       if (hosted.original_image_url) fields.original_image_url = hosted.original_image_url;
@@ -50,7 +56,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         notice = error instanceof Error ? error.message : 'The image could not be stored.';
       }
     }
-    report.import_notice = notice || 'Some product details are missing. Retry or edit this Pin.';
+    const restricted = report.attempts?.some(entry => ['source_restricted', 'blocked_by_robots', 'blocked_metadata'].includes(entry.code));
+    report.import_notice = notice || (restricted
+      ? 'A source blocked access to product details. Retry or add the missing details in Edit this Pin.'
+      : 'Product details are incomplete. Retry or add the missing details in Edit this Pin.');
     const merged = { ...item, ...fields };
     const uncertain = !!report.variant_review && report.variant?.source !== 'user_confirmed';
     const checkpointAt = new Date().toISOString();

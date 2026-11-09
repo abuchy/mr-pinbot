@@ -1,3 +1,4 @@
+import { safePublicUrl } from '../content';
 import { authorizedRequest, SourceError } from './http';
 import { attempt, type ProductContext, type Resolver } from './model';
 // One public navigation hop for an explicitly pasted product link. No account,
@@ -16,9 +17,11 @@ export class ShopMyPublicLinkResolver implements Resolver {
     const location=new URL(res.location,input);
     // The redirect response itself can expose a URL. Decode it as text; never
     // request ShopMy's intermediate API route or infer other API endpoints.
-    const embedded=location.searchParams.get('url');
+    const networkLink = location.hostname === 'click.linksynergy.com';
+    const embedded = location.searchParams.get(networkLink ? 'murl' : 'url');
+    if (networkLink && !embedded) throw new SourceError('destination_unavailable', 'The affiliate network redirect did not include a retailer URL.');
     const target=embedded?new URL(embedded):location;
-    if(target.protocol!=='https:'||target.username||target.password||target.port||target.hostname==='shopmy.us'||target.hostname.endsWith('.shopmy.us'))throw new SourceError('destination_unavailable','The first redirect did not identify a retailer product URL.');
+    if(!safePublicUrl(target.href)||target.hostname==='click.linksynergy.com'||target.hostname==='shopmy.us'||target.hostname.endsWith('.shopmy.us'))throw new SourceError('destination_unavailable','The first redirect did not identify a retailer product URL.');
     return {url:target.href,attempts:[attempt('resolution',this.id,'resolved','Identified the retailer product URL from one public HTTP redirect. No intermediate API was called.')],provenance:{source:this.id,authorizationReference:grants[0].authorizationReference,retrievedAt:new Date().toISOString(),locator:input.origin+input.pathname,method:'HTTP HEAD Location; local destination decoding'}};
   }
 }

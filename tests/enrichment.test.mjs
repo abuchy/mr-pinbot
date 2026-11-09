@@ -52,3 +52,43 @@ test('Open Graph is preferred over conflicting JSON-LD, with JSON-LD as fallback
  const html='<meta property="og:title" content="OG name"><meta property="og:image" content="/og.jpg"><script type="application/ld+json">{"@type":"Product","name":"JSON name","image":"/json.jpg"}</script>';
  const result=extractMetadata(html,'https://example.com/p');assert.equal(result.fields.product_name,'OG name');assert.equal(result.fields.image_url,'https://example.com/og.jpg');
 });
+
+test('decodes the Reformation destination from the supplied ShopMy link without contacting the affiliate network', async () => {
+ const { ShopMyPublicLinkResolver } = await import('../src/lib/enrichment/shopmy-redirect.ts');
+ const affiliate = parseShopMyLink('https://go.shopmy.us/p-100703533');
+ const destination = 'https://www.thereformation.com/products/hug-sweater/1320844ULT.html?dwvar_1320844ULT_color=ULT';
+ const calls = [];
+ const resolver = new ShopMyPublicLinkResolver(async url => {
+   calls.push(url.href);
+   return {status:302, location:'https://click.linksynergy.com/deeplink?mid=40090&murl='+encodeURIComponent(destination)};
+ });
+ const result = await runPipeline({...affiliate, product_url:''},{},{resolvers:[resolver],providers:[{
+   id:'test_index',
+   async lookup(context) {
+     assert.equal(context.product_url,destination);
+     assert.equal(context.affiliate_url,affiliate.affiliate_url);
+     return {fields:{product_name:'Hug Sweater',retailer:'Reformation',image_url:'https://example.com/sweater.jpg'},attempts:[]};
+   },
+ }]});
+ assert.deepEqual(calls,[affiliate.affiliate_url]);
+ assert.equal(result.suggestions.product_url,destination);
+ assert.equal(result.suggestions.product_name,'Hug Sweater');
+ assert.equal(result.enrichment_status,'review_required');
+});
+
+test('blocked HTML and provider errors leave a pending draft without fabricated product fields', async () => {
+ assert.deepEqual(extractMetadata('<title>Page blocked</title><meta property="og:image" content="/warning.png">','https://example.com/product').fields,{});
+ const result = await runPipeline(context,{}, {resolvers:[], providers:[{
+   id:'test_provider',
+   async lookup() { return {fields:{product_name:'Page blocked | Retailer',product_description:'403 Forbidden'},attempts:[]}; },
+ }]});
+ assert.deepEqual(result.suggestions,{});
+ assert.equal(result.enrichment_status,'pending');
+ assert.ok(result.enrichment_report.attempts.some(entry => entry.code==='blocked_metadata'));
+});
+
+test('uses ordinary HTML metadata when structured product metadata is unavailable', () => {
+ const {fields}=extractMetadata('<title>Hug Sweater</title><meta name="description" content="Striped crewneck sweater">','https://example.com/product');
+ assert.equal(fields.product_name,'Hug Sweater');
+ assert.equal(fields.product_description,'Striped crewneck sweater');
+});
