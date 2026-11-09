@@ -62,7 +62,7 @@ export function ProductFields({values,onDescribe,onHostImage,onHosting,onPending
     finally{setHosting(false);onHosting?.(false);}
   }}>{hosting?'Storing image…':imageNotice?'Retry image storage':'Store image in library'}</button>}
   {image&&<div className="review-image"><Image key={image} unoptimized width={220} height={220} src={image} alt="Product image preview" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.alt='Image could not load; check its URL.';if(onHostImage)setImageNotice('The image could not load. Check the URL or retry storage.');}}/></div>}
-  <label className="field-label">Description<textarea name="product_description" rows={4} value={description} onChange={e=>{dirty.current=true;setManual(true);setDescription(e.target.value);setStatus('Your edited description will be kept when the image changes.');}} maxLength={2000}/></label>
+  <label className="field-label">Description<textarea name="product_description" rows={4} value={description} onChange={e=>{dirty.current=true;setManual(true);setDescription(e.target.value);}} maxLength={2000}/></label>
   <input type="hidden" name="original_image_url" value={originalImage}/>
   <input type="hidden" name="description_is_manual" value={String(manual)}/><input type="hidden" name="description_image_url" value={descriptionImage}/>
   {onDescribe&&<p className="field-help">Automatic descriptions use your image and relevant Pinterest keywords.</p>}
