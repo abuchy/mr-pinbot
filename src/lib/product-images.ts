@@ -75,7 +75,7 @@ export async function storeProductImage(db:SupabaseClient,owner:string,source:st
  return {image_url:publicUrl(reserved),original_image_url:source};
 }
 
-export async function hostEnrichedImage(result:Result,db:SupabaseClient,owner:string){
+export async function hostEnrichedImage(result:Result,db:SupabaseClient,owner:string):Promise<{ image_url?: string; original_image_url?: string; image_notice?: string }>{
  const source=result.suggestions.image_url;
  if(!source)return {image_notice:result.enrichment_report.variant_review && !result.enrichment_report.variant?'No exact variant image was selected. Add the matching image URL to continue.':undefined};
  try{

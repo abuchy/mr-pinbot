@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { previewImport, validateDetails } from '@/lib/content';
-import { enrichFromAuthorizedSources } from '@/lib/enrichment';
-import {hostEnrichedImage,originalImageUrl} from '@/lib/product-images';
+import {originalImageUrl} from '@/lib/product-images';
 export const maxDuration=60;
 export async function GET(request: NextRequest) {
   try {
@@ -32,20 +31,7 @@ export async function POST(request: NextRequest) {
     // Save first, before any optional network operation. Duplicates never overwrite edits.
     const {data,error}=await auth.database.from('content_items').upsert(parsed.links.map(link=>({...link,owner_id:auth.user.id,source:'pasted_link',enrichment_status:'pending',...(details||{}),original_image_url,metadata_reviewed:!!details})),{onConflict:'owner_id,source_key',ignoreDuplicates:true}).select('*');
     if(error) return privateJson({error:'Links could not be saved. Your pasted text is preserved.'},503);
-    let checked=0;
-    // A bounded, user-triggered lookup, not an unattended crawler. Remaining items stay pending.
-    for(const item of (data||[]).slice(0,1)) {
-      try {
-        const result=await enrichFromAuthorizedSources(item,{...item,...(!item.metadata_reviewed?{product_name:''}:{})},auth.database);
-        const hosted=await hostEnrichedImage(result,auth.database,auth.user.id);
-        const merged={...item,...result.suggestions};
-        const full=merged.product_name&&merged.image_url&&merged.product_description;
-        const status=full?'review_required':result.enrichment_status;
-        const update={...result.suggestions,...(hosted.original_image_url?{original_image_url:hosted.original_image_url}:{}),enrichment_status:status,enrichment_report:result.enrichment_report,metadata_reviewed:!!details,updated_at:new Date().toISOString()};
-        const saved=await auth.database.from('content_items').update(update).eq('id',item.id).eq('owner_id',auth.user.id).eq('updated_at',item.updated_at);
-        if(!saved.error) checked++;
-      } catch { /* The saved pending link survives source/configuration failures. */ }
-    }
-    return privateJson({added:data?.length||0,duplicates:parsed.duplicates+parsed.links.length-(data?.length||0),message:checked?'Available enrichment checked. Review suggestions; missing metadata stays pending.':'Links saved with metadata pending. Open Edit this Pin to add or retry an image.'});
+    const items=data||[];
+    return privateJson({items,added:items.length,duplicates:parsed.duplicates+parsed.links.length-items.length});
   }catch{return privateJson({error:'Import could not finish. Retry safely; saved links will be deduplicated.'},503);}
 }

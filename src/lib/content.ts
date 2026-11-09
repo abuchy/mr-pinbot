@@ -20,7 +20,7 @@ export type ContentItem = {
   source: "pasted_link" | "official_shopmy_api" | "authorized_browser";
   enrichment_status: "pending" | "partial" | "review_required" | "manual" | "enriched";
   metadata_reviewed: boolean;
-  enrichment_report: { attempts: { stage: string; source: string; code: string; message: string; at: string }[]; checked_at: string | null; variant?: import('./enrichment/model').Variant; variant_review?:string; image_candidates?: {url:string;label:string;variantConfirmed:boolean}[]; fields?: Record<string, { source: string; method: string; retrievedAt: string; confidence?: string; reviewReason?: string; imageUsagePermission?: boolean }> };
+  enrichment_report: { attempts: { stage: string; source: string; code: string; message: string; at: string }[]; checked_at: string | null; import_notice?:string; variant?: import('./enrichment/model').Variant; variant_review?:string; image_candidates?: {url:string;label:string;variantConfirmed:boolean}[]; fields?: Record<string, { source: string; method: string; retrievedAt: string; confidence?: string; reviewReason?: string; imageUsagePermission?: boolean }> };
 };
 export type ParsedLink = { affiliate_url: string; source_key: string };
 export type ImportPreview = { links: ParsedLink[]; invalid: string[]; duplicates: number };
