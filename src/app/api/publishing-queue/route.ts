@@ -3,7 +3,7 @@ import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { safePublicUrl } from "@/lib/content";
 import { connectionTable, pinterestBoard, pinterestConfig, pinterestDatabase, PinterestError, pinterestProfile, refreshAccess } from "@/lib/pinterest";
 
-const fields = "id,content_id,pinterest_account,board_id,board_name,title,description,image_url,destination_url,approved_at,scheduled_at";
+const fields = "id,content_id,pinterest_account,board_id,board_name,title,description,image_url,destination_url,approved_at,scheduled_at,automatic_at";
 const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 
 export async function GET(request: NextRequest) {
