@@ -9,3 +9,14 @@ test('exact product path wins; unrelated image rejected; variant remains unverif
 test('search continues after restricted metadata and unsuccessful variant search',async()=>{let calls=0;const provider=new TavilySearchProvider('',async(_url,options)=>{assert.equal(options.headers['X-Tavily-Access-Mode'],'keyless');calls++;return new Response(JSON.stringify(calls===1?{results:[]}:response));});const result=await runPipeline(context,{}, {resolvers:[],providers:[{id:'permitted_page',lookup:async()=>{throw new Error('blocked');}},provider]});assert.equal(calls,2);assert.equal(result.suggestions.product_name,'Triangle Cami Tank');assert.equal(result.enrichment_report.image_candidates.length,0);assert.equal(context.affiliate_url,'https://go.shopmy.us/p-101876060');});
 test('rate limits surface actionable setup instead of retry loops',async()=>{await assert.rejects(new TavilySearchProvider('',async()=>new Response('',{status:429})).lookup(context),/TAVILY_API_KEY/);});
 test('Twitter Card title, image, description fallback',()=>{const r=extractMetadata('<meta name="twitter:title" content="Tank"><meta name="twitter:description" content="Description"><meta name="twitter:image" content="/tank.png">','https://example.com/product');assert.equal(r.fields.product_name,'Tank');assert.equal(r.fields.product_description,'Description');assert.equal(r.fields.image_url,'https://example.com/tank.png');});
+
+test('color-specific SKU can recover a parent title without borrowing the parent image', () => {
+ const product_url='https://www.thereformation.com/products/hug-sweater/1320844ULT.html?dwvar_1320844ULT_color=ULT';
+ const result=matchSearch({product_url},{
+   results:[{url:'https://www.thereformation.com/products/hug-sweater/1320844.html',title:'Hug Sweater | Reformation'}],
+   images:[{url:'https://example.com/parent.jpg',title:'Hug Sweater'}],
+ });
+ assert.equal(result.fields.product_name,'Hug Sweater');
+ assert.equal(result.fields.image_url,undefined);
+ assert.equal(result.parentOnly,true);
+});
