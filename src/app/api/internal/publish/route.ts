@@ -20,6 +20,11 @@ export async function POST(request: NextRequest) {
   const owner = process.env.PINBOT_PUBLISH_OWNER_ID;
   const trial = process.env.PINTEREST_ACCESS_TIER !== "standard";
   const target = process.env.PINBOT_TRIAL_PIN_ID;
+  const sandboxToken = trial ? process.env.PINTEREST_SANDBOX_ACCESS_TOKEN?.trim() : undefined;
+  const sandboxBoard = trial ? process.env.PINTEREST_SANDBOX_BOARD_ID : undefined;
+  if (trial && (!sandboxToken || !sandboxBoard || !/^\d{1,32}$/.test(sandboxBoard))) {
+    return privateJson({ status: "sandbox_setup_required" });
+  }
   if (trial && !target) return privateJson({ status: "trial_target_required" });
   if (!config || !owner) return privateJson({ error: "Publishing is not configured." }, 503);
   const database = pinterestDatabase(config);
@@ -51,16 +56,17 @@ export async function POST(request: NextRequest) {
   let sent = false;
   let pinterestId: string;
   try {
-    const token = await refreshAccess(config, connection);
-    const [profile, board] = await Promise.all([pinterestProfile(token), pinterestBoard(token, pin.board_id)]);
-    if (profile.username !== pin.pinterest_account || board.id !== pin.board_id || board.privacy !== "PUBLIC") {
+    const token = sandboxToken ?? await refreshAccess(config, connection);
+    const boardId = sandboxBoard ?? pin.board_id;
+    const [profile, board] = await Promise.all([pinterestProfile(token, trial), pinterestBoard(token, boardId, trial)]);
+    if (profile.username !== pin.pinterest_account || board.id !== boardId || board.privacy !== "PUBLIC") {
       return await finish("failed", { publish_error: "The approved Pinterest account or board is no longer available." });
     }
     sent = true;
     pinterestId = await createPinterestPin(token, {
-      board_id: pin.board_id, title: pin.title, description: pin.description,
+      board_id: boardId, title: pin.title, description: pin.description,
       image_url: pin.image_url, destination_url: pin.destination_url,
-    });
+    }, trial);
   } catch (error) {
     const rejected = error instanceof PinterestError && [400, 401, 403, 404, 422, 429].includes(error.status);
     const uncertain = sent && !rejected;

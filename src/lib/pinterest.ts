@@ -55,11 +55,11 @@ export function connectionTable(config: Config) {
   return pinterestDatabase(config).from("pinterest_connections");
 }
 
-export function pinterestBoard(token: string, boardId: string) {
+export function pinterestBoard(token: string, boardId: string, sandbox = false) {
   if (!/^\d{1,32}$/.test(boardId)) throw new PinterestError("Choose a valid board.", 400);
   return pinterestRequest<{ id: string; name: string; privacy: string }>("boards/" + boardId, {
     headers: { Authorization: "Bearer " + token },
-  });
+  }, sandbox);
 }
 
 export function stateHash(state: string) {
@@ -82,8 +82,8 @@ function decrypt(config: Config, owner: string, ciphertext: string): Tokens {
   return JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString("utf8"));
 }
 
-async function pinterestRequest<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(new URL(path, "https://api.pinterest.com/v5/"), {
+async function pinterestRequest<T>(path: string, init: RequestInit, sandbox = false): Promise<T> {
+  const response = await fetch(new URL(path, sandbox ? "https://api-sandbox.pinterest.com/v5/" : "https://api.pinterest.com/v5/"), {
     ...init, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) {
@@ -155,10 +155,10 @@ export async function refreshAccess(config: Config, row: Connection, force = fal
   }
 }
 
-export async function pinterestProfile(token: string) {
+export async function pinterestProfile(token: string, sandbox = false) {
   const profile = await pinterestRequest<{ username: string; account_type?: string }>("user_account", {
     headers: { Authorization: "Bearer " + token },
-  });
+  }, sandbox);
   if (!profile.username) throw new Error("Pinterest did not return an account.");
   return { username: profile.username, accountType: profile.account_type };
 }
@@ -178,7 +178,7 @@ export async function pinterestBoards(token: string, bookmark?: string) {
 
 export async function createPinterestPin(token: string, pin: {
   board_id: string; title: string; description: string; image_url: string; destination_url: string;
-}) {
+}, sandbox = false) {
   const result = await pinterestRequest<{ id: string }>("pins", {
     method: "POST",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -186,7 +186,7 @@ export async function createPinterestPin(token: string, pin: {
       board_id: pin.board_id, title: pin.title, description: pin.description, link: pin.destination_url,
       media_source: { source_type: "image_url", url: pin.image_url },
     }),
-  });
+  }, sandbox);
   if (typeof result.id !== "string" || !/^\d+$/.test(result.id)) throw new Error("Pinterest returned no Pin ID.");
   return result.id;
 }
