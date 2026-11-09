@@ -27,3 +27,13 @@
   padding: 8px 12px;
 }
 .delete-button{background:var(--burgundy);color:white;border-color:var(--burgundy)}
+
+.pin-approval-body { padding: 20px 24px; display: grid; gap: 16px; justify-items: start; }
+.pin-approval-body form, .pin-approval-row { display: grid; gap: 12px; width: 100%; justify-items: start; min-width: 0; }
+.pin-approval-body .field-label { width: min(100%, 480px); }
+.pin-approval-body select { width: 100%; padding: 10px; font: inherit; border: 1px solid var(--line); background: white; }
+.pin-approval-preview { display: flex; align-items: flex-start; gap: 16px; min-width: 0; overflow-wrap: anywhere; }
+.pin-approval-preview img { flex: none; object-fit: cover; }
+.pin-approval-destination { font-size: 11px; color: var(--muted); }
+.pin-approval-row { border-top: 1px solid var(--line); padding-top: 16px; }
+[aria-labelledby="approval-heading"] + .section-panel { margin-top: 20px; }

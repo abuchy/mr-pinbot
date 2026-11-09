@@ -41,10 +41,21 @@ export function pinterestConfig() {
 
 type Config = NonNullable<ReturnType<typeof pinterestConfig>>;
 
-export function connectionTable(config: Config) {
+export function pinterestDatabase(config: Config) {
   return createClient(config.databaseUrl, config.databaseKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-  }).from("pinterest_connections");
+  });
+}
+
+export function connectionTable(config: Config) {
+  return pinterestDatabase(config).from("pinterest_connections");
+}
+
+export function pinterestBoard(token: string, boardId: string) {
+  if (!/^\d{1,32}$/.test(boardId)) throw new PinterestError("Choose a valid board.", 400);
+  return pinterestRequest<{ id: string; name: string; privacy: string }>("boards/" + boardId, {
+    headers: { Authorization: "Bearer " + token },
+  });
 }
 
 export function stateHash(state: string) {
