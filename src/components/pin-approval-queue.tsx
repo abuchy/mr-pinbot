@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ContentItem } from "@/lib/content";
+import { defaultCadence, planCadence, type Cadence } from "@/lib/publishing-cadence";
 import { browserDatabase } from "@/lib/supabase-browser";
 
 type Preview = { title: string; description: string; image_url: string; destination_url: string };
@@ -66,6 +67,9 @@ function ScheduleEditor({ pin, busy, onSave }: {
 }
 
 export function PinApprovalQueue() {
+  const [cadence, setCadence] = useState(defaultCadence);
+  const [draft, setDraft] = useState(defaultCadence);
+  const [planTime, setPlanTime] = useState(0);
   const [items, setItems] = useState<ContentItem[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
@@ -90,12 +94,16 @@ export function PinApprovalQueue() {
   }
 
   async function load() {
-    const [library, queue] = await Promise.all([
+    const [library, queue, preference] = await Promise.all([
       request<{ items: ContentItem[] }>("/api/content"),
       request<{ items: Approval[] }>("/api/publishing-queue"),
+      request<{ settings: Cadence }>("/api/publishing-queue/cadence"),
     ]);
     setItems(library.items);
     setApprovals(queue.items);
+    setCadence(preference.settings);
+    setDraft(preference.settings);
+    setPlanTime(Date.now());
     setLoaded(true);
   }
 
@@ -125,6 +133,12 @@ export function PinApprovalQueue() {
   const selected = available.find(item => item.id === selection);
   const board = boards.find(board => board.id === boardId);
 
+  const proposed = loaded ? planCadence(approvals, cadence, planTime) : new Map<string, string>();
+  const displayTime = (time: string) => new Date(time).toLocaleString(undefined, {
+    timeZone: cadence.zone, dateStyle: "medium", timeStyle: "short",
+  });
+  const effectiveTime = (pin: Approval) => pin.scheduled_at ?? proposed.get(pin.id);
+
   return <section className="section-panel" aria-labelledby="approval-heading" aria-busy={busy}>
     <div className="section-header">
       <h2 id="approval-heading">Pin approval queue</h2>
@@ -137,7 +151,26 @@ export function PinApprovalQueue() {
         <button className="button quiet" onClick={() => void run(load)}>Try again</button>
       </div>)}
       {loaded && <>
-        <p className="muted">You can lock a time for any approved Pin. Automatic publishing is not active yet.</p>
+        <p className="muted">Cadence previews update around locked times. Automatic publishing is not active yet.</p>
+        <form onSubmit={event => {
+          event.preventDefault();
+          void run(async () => {
+            const result = await request<{ settings: Cadence }>("/api/publishing-queue/cadence", {
+              method: "PUT", body: JSON.stringify(draft),
+            });
+            setCadence(result.settings);
+            setDraft(result.settings);
+            setPlanTime(Date.now());
+          });
+        }}>
+          <h3>Publishing cadence</h3>
+          <label className="field-label">Pins per day<input type="number" min="1" max="20" required value={draft.daily || ""} onChange={e => setDraft({ ...draft, daily: Number(e.target.value) })}/></label>
+          <label className="field-label">Window starts<input type="time" required value={draft.start} onChange={e => setDraft({ ...draft, start: e.target.value })}/></label>
+          <label className="field-label">Window ends<input type="time" required value={draft.end} onChange={e => setDraft({ ...draft, end: e.target.value })}/></label>
+          <label className="field-label">Time zone<input required value={draft.zone} onChange={e => setDraft({ ...draft, zone: e.target.value })}/></label>
+          <label className="field-label">Minimum minutes between Pins<input type="number" min="5" max="720" required value={draft.gap || ""} onChange={e => setDraft({ ...draft, gap: Number(e.target.value) })}/></label>
+          <button className="button primary" disabled={busy}>Save cadence</button>
+        </form>
         <form onSubmit={event => {
           event.preventDefault();
           if (!selected || !board || !account || busy) return;
@@ -175,13 +208,11 @@ export function PinApprovalQueue() {
           </>}
         </form>
         <button className="button quiet" disabled={busy} onClick={() => void run(async () => { await load(); if (account) await loadBoards(); })}>Refresh library and approvals</button>
-        {[...approvals].sort((a, b) => {
-          if (!a.scheduled_at) return b.scheduled_at ? 1 : 0;
-          if (!b.scheduled_at) return -1;
-          return Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at);
-        }).map(pin => <article className="pin-approval-row" key={pin.id}>
+        {[...approvals].sort((a, b) =>
+          (effectiveTime(a) ?? "~").localeCompare(effectiveTime(b) ?? "~"),
+        ).map(pin => <article className="pin-approval-row" key={pin.id}>
           <PinPreview pin={pin}/>
-          <p className="muted">{pin.board_name} · @{pin.pinterest_account} · {pin.scheduled_at ? new Date(pin.scheduled_at).toLocaleString() : "Awaiting scheduling"}</p>
+          <p className="muted">{pin.board_name} · @{pin.pinterest_account} · {effectiveTime(pin) ? displayTime(effectiveTime(pin)!) + (pin.scheduled_at ? " (locked)" : " (proposed)") : "Awaiting scheduling"}</p>
           <ScheduleEditor key={pin.scheduled_at ?? "unscheduled"} pin={pin} busy={busy} onSave={scheduledAt => void run(async () => {
             const { item } = await request<{ item: Approval }>("/api/publishing-queue", {
               method: "PATCH", body: JSON.stringify({ id: pin.id, scheduledAt }),
