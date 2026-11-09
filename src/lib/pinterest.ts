@@ -18,7 +18,11 @@ type Connection = {
 type Tokens = { access: string; refresh: string; expires: string };
 
 export class PinterestError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly upstream?: { operation: string; httpStatus: number; code?: number },
+  ) {
     super(message);
   }
 }
@@ -86,7 +90,11 @@ async function pinterestRequest<T>(path: string, init: RequestInit): Promise<T> 
     const message = response.status === 429 ? "Pinterest’s rate limit was reached. Try again later."
       : response.status === 403 ? "Pinterest declined access. Check your app access and account permissions."
       : "Pinterest could not complete the request.";
-    throw new PinterestError(message, response.status);
+    const body: unknown = await response.json().catch(() => null);
+    const code = body && typeof body === "object" && "code" in body && typeof body.code === "number"
+      && Number.isSafeInteger(body.code) ? body.code : undefined;
+    const operation = (init.method ?? "GET") + " /" + path.split(/[/?]/).slice(0, path.startsWith("oauth/") ? 2 : 1).join("/");
+    throw new PinterestError(message, response.status, { operation, httpStatus: response.status, code });
   }
   return response.json();
 }
@@ -142,7 +150,7 @@ export async function refreshAccess(config: Config, row: Connection, force = fal
   } catch (error) {
     const rejected = error instanceof PinterestError && [400, 401].includes(error.status);
     await release({ refresh_locked_until: null, ...(rejected ? { reconnect_required: true } : {}) });
-    if (rejected) throw new PinterestError("Reconnect Pinterest to continue.", 401);
+    if (rejected) throw new PinterestError("Reconnect Pinterest to continue.", 401, error.upstream);
     throw error;
   }
 }

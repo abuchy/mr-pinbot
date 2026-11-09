@@ -64,10 +64,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const rejected = error instanceof PinterestError && [400, 401, 403, 404, 422, 429].includes(error.status);
     const uncertain = sent && !rejected;
-    return finish(uncertain ? "needs_verification" : "failed", {
-      publish_error: uncertain ? "Check Pinterest for this Pin before taking further action."
-        : error instanceof PinterestError ? error.message : "Publishing stopped before sending the Pin.",
-    });
+    const message = uncertain ? "Check Pinterest for this Pin before taking further action."
+      : error instanceof PinterestError ? error.message : "Publishing stopped before sending the Pin.";
+    const upstream = error instanceof PinterestError ? error.upstream : undefined;
+    const diagnostics = upstream
+      ? ` (${upstream.operation}, HTTP ${upstream.httpStatus}${upstream.code === undefined ? "" : `, Pinterest code ${upstream.code}`})`
+      : "";
+    return finish(uncertain ? "needs_verification" : "failed", { publish_error: message + diagnostics });
   }
   return finish("published", { pinterest_pin_id: pinterestId, published_at: new Date().toISOString(), publish_error: null });
 }
