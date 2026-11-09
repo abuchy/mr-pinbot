@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
 
   const config = pinterestConfig();
   const owner = process.env.PINBOT_PUBLISH_OWNER_ID;
+  const trial = process.env.PINTEREST_ACCESS_TIER !== "standard";
+  const target = process.env.PINBOT_TRIAL_PIN_ID;
+  if (trial && !target) return privateJson({ status: "trial_target_required" });
   if (!config || !owner) return privateJson({ error: "Publishing is not configured." }, 503);
   const database = pinterestDatabase(config);
   const { data: connection, error } = await connectionTable(config)
@@ -26,7 +29,15 @@ export async function POST(request: NextRequest) {
   if (error) return privateJson({ error: "Connection storage unavailable." }, 503);
   if (!connection?.token_ciphertext || connection.reconnect_required) return privateJson({ status: "disconnected" });
 
-  const { data: pin, error: claimError } = await database.rpc("claim_due_pin", { p_owner: owner }).maybeSingle<Record<string, string>>();
+  if (trial) {
+    const approved = await database.from("pin_approvals").select("id")
+      .eq("owner_id", owner).eq("id", target!).maybeSingle();
+    if (approved.error) return privateJson({ error: "Trial target unavailable." }, 503);
+    if (!approved.data) return privateJson({ status: "trial_target_required" });
+  }
+  const claim = trial ? database.rpc("claim_trial_pin", { p_pin: target })
+    : database.rpc("claim_due_pin", { p_owner: owner });
+  const { data: pin, error: claimError } = await claim.maybeSingle<Record<string, string>>();
   if (claimError) return privateJson({ error: "Could not claim a due Pin." }, 503);
   if (!pin) return privateJson({ status: "idle" });
 
