@@ -14,6 +14,23 @@ export async function GET(request: NextRequest) {
   const config = pinterestConfig();
   if (!config) return privateJson({ status: "setup_required", tier: tier() });
 
+  if (request.nextUrl.searchParams.get("environment") === "sandbox") {
+    const token = process.env.PINTEREST_SANDBOX_ACCESS_TOKEN?.trim();
+    if (!token || tier() !== "trial") return privateJson({ error: "Pinterest Sandbox is not configured." }, 503);
+    const cursor = request.nextUrl.searchParams.get("bookmark") || undefined;
+    if (cursor && cursor.length > 2048) return privateJson({ error: "Invalid board cursor." }, 400);
+    try {
+      const profile = await pinterestProfile(token, true);
+      const boards = await pinterestBoards(token, cursor, true);
+      return privateJson({ profile, ...boards });
+    } catch (error) {
+      const detail = error instanceof PinterestError && error.upstream
+        ? ` (HTTP ${error.upstream.httpStatus}${error.upstream.code === undefined ? "" : `, Pinterest code ${error.upstream.code}`})`
+        : "";
+      return privateJson({ error: "Sandbox boards could not be loaded." + detail }, 502);
+    }
+  }
+
   const { data: row, error } = await connectionTable(config)
     .select("owner_id,revision,token_ciphertext,access_expires_at,reconnect_required")
     .eq("owner_id", auth.user.id).maybeSingle();

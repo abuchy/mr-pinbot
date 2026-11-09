@@ -163,12 +163,12 @@ export async function pinterestProfile(token: string, sandbox = false) {
   return { username: profile.username, accountType: profile.account_type };
 }
 
-export async function pinterestBoards(token: string, bookmark?: string) {
+export async function pinterestBoards(token: string, bookmark?: string, sandbox = false) {
   const query = new URLSearchParams({ page_size: "100" });
   if (bookmark) query.set("bookmark", bookmark);
   const result = await pinterestRequest<{ items: { id: string; name: string; privacy?: string }[]; bookmark?: string }>("boards?" + query, {
     headers: { Authorization: "Bearer " + token },
-  });
+  }, sandbox);
   return {
     boards: result.items.filter(board => !board.privacy || board.privacy === "PUBLIC")
       .map(({ id, name }) => ({ id, name })),

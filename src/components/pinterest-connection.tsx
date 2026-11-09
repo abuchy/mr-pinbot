@@ -26,6 +26,36 @@ export function PinterestConnection() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+  const [sandboxBoards, setSandboxBoards] = useState<NonNullable<Connection["boards"]>>();
+  const [sandboxCursor, setSandboxCursor] = useState<string | null>(null);
+  const [sandboxError, setSandboxError] = useState("");
+  const [sandboxBusy, setSandboxBusy] = useState(false);
+
+  async function loadSandboxBoards(cursor?: string) {
+    setSandboxBusy(true);
+    setSandboxError("");
+    try {
+      const session = (await browserDatabase()?.auth.getSession())?.data.session;
+      if (!session) throw new Error("Sign in to load Sandbox boards.");
+      const query = new URLSearchParams({ environment: "sandbox" });
+      if (cursor) query.set("bookmark", cursor);
+      const response = await fetch("/api/pinterest?" + query, {
+        headers: { Authorization: "Bearer " + session.access_token }, cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not load Sandbox boards.");
+      if (data.profile?.username !== connection?.profile?.username) {
+        throw new Error("The Sandbox token belongs to a different Pinterest account.");
+      }
+      setSandboxBoards(previous => [...(cursor ? previous ?? [] : []), ...data.boards]);
+      setSandboxCursor(data.bookmark);
+    } catch (error) {
+      setSandboxError(error instanceof Error ? error.message : "Could not load Sandbox boards.");
+    } finally {
+      setSandboxBusy(false);
+    }
+  }
+
   const request = useCallback(async (method = "GET", bookmark?: string) => {
     const session = (await browserDatabase()?.auth.getSession())?.data.session;
     if (!session) {
@@ -114,6 +144,14 @@ export function PinterestConnection() {
         </div>
       </>}
       {connection?.tier === "trial" && connection.status !== "setup_required" && <p>Pins created through Trial access are visible only to their creator.</p>}
+      {connection?.tier === "trial" && connection.status === "connected" && <div>
+        <button className="button quiet" disabled={sandboxBusy} onClick={() => void loadSandboxBoards()}>Check Sandbox boards</button>
+        {sandboxError && <p role="alert">{sandboxError}</p>}
+        {sandboxBoards && <p role="status">{sandboxBoards.length
+          ? "Sandbox boards: " + sandboxBoards.map(board => board.name).join(" · ")
+          : sandboxCursor ? "No Sandbox boards on this page." : "No public Sandbox boards found."}</p>}
+        {sandboxCursor && <button className="button quiet" disabled={sandboxBusy} onClick={() => void loadSandboxBoards(sandboxCursor)}>Load more Sandbox boards</button>}
+      </div>}
       {error && !connection && <button className="button quiet" disabled={busy} onClick={() => void run()}>Try again</button>}
     </div>
   </section>;
