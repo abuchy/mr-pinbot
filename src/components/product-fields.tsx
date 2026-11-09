@@ -5,8 +5,10 @@ import {safePublicUrl} from '@/lib/content';
 import type {Fields} from '@/lib/enrichment/model';
 type Values=Fields&{affiliate_url?:string;website_url?:string|null;description_is_manual?:boolean;description_image_url?:string;image_notice?:string;original_image_url?:string};
 type Describe=(image:string,title:string)=>Promise<{description:string;image_url:string}>;
-export function ProductFields({values,onDescribe,onHostImage,onHosting,onPending}:{values:Values;permission?:boolean;candidates?:{url:string;label:string}[];onDescribe?:Describe;onHostImage?:(url:string,title:string)=>Promise<{image_url:string;original_image_url:string}>;onHosting?:(pending:boolean)=>void;onPending?:(value:boolean)=>void}){
+export function ProductFields({values,onDescribe,onHostImage,onHosting,onPending,onChanges}:{values:Values;permission?:boolean;candidates?:{url:string;label:string}[];onDescribe?:Describe;onHostImage?:(url:string,title:string)=>Promise<{image_url:string;original_image_url:string}>;onHosting?:(pending:boolean)=>void;onPending?:(value:boolean)=>void;onChanges?:(changed:boolean)=>void}){
  const [image,setImage]=useState(values.image_url||'');
+ const initialWebsite=values.website_url||values.affiliate_url||'';
+ const [website,setWebsite]=useState(initialWebsite);
  const [title,setTitle]=useState(values.product_name||'');
  const [description,setDescription]=useState(values.product_description||'');
  const [manual,setManual]=useState(!!values.product_description&&(values.description_is_manual??true));
@@ -18,6 +20,13 @@ export function ProductFields({values,onDescribe,onHostImage,onHosting,onPending
  const currentImage=useRef(values.image_url||'');
  const [status,setStatus]=useState('');
  const dirty=useRef(manual),last=useRef(descriptionImage),currentTitle=useRef(title);
+ const hasChanges=title.trim()!==(values.product_name||'').trim()
+  || website.trim()!==initialWebsite.trim()
+  || image.trim()!==(values.image_url||'').trim()
+  || description.trim()!==(values.product_description||'').trim();
+ useEffect(()=>{
+  onChanges?.(hasChanges);
+ },[hasChanges,onChanges]);
  useEffect(()=>{
   if(!onDescribe||!image||!safePublicUrl(image)||last.current===image)return;
   onPending?.(true);
@@ -37,7 +46,7 @@ export function ProductFields({values,onDescribe,onHostImage,onHosting,onPending
  },[image,onDescribe,onPending]);
  return <>
   <label className="field-label">Title<input name="product_name" value={title} onChange={e=>{currentTitle.current=e.target.value;setTitle(e.target.value);}} maxLength={300}/></label>
-  <label className="field-label">Website<input name="website_url" type="url" defaultValue={values.website_url||values.affiliate_url||''} required maxLength={2048}/></label>
+  <label className="field-label">Website<input name="website_url" type="url" value={website} onChange={event=>setWebsite(event.target.value)} required maxLength={2048}/></label>
   <label className="field-label">Image URL<input name="image_url" type="url" value={image} onChange={e=>{currentImage.current=e.target.value;last.current='';setImage(e.target.value);setSuggestion(null);setImageNotice('');setOriginalImage('');}} maxLength={2048}/></label>
   {imageNotice&&<p className="field-help" role="status">{imageNotice}</p>}
   {onHostImage&&image&&(!image.includes('/storage/v1/object/public/product-images/')||imageNotice)&&<button type="button" className="inline-button" disabled={hosting} onClick={async()=>{

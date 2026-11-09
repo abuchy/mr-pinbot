@@ -35,6 +35,7 @@ export function LibraryView() {
   const [imageBusy,setImageBusy]=useState(false);
   const [descriptionBusy,setDescriptionBusy]=useState(false);
   const [editing, setEditing] = useState<ContentItem | null>(null);
+  const [hasPinChanges,setHasPinChanges]=useState(false);
   const [editorError, setEditorError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const editor = useRef<HTMLDialogElement>(null);
@@ -138,7 +139,7 @@ export function LibraryView() {
   }
   function closeEditor() { editor.current?.close(); setEditing(null); setEditorError(""); }
   async function saveDetails(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!editing) return;
+    event.preventDefault(); if (!editing || !hasPinChanges || busy || descriptionBusy || imageBusy) return;
     const data = new FormData(event.currentTarget);
     setBusy(true); setEditorError("");
     try {
@@ -184,8 +185,8 @@ export function LibraryView() {
           <button className="button quiet" disabled={busy} onClick={() => void retryImport(item)}>Retry product details</button>
         </>}
         {progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
-        <button className="button quiet" disabled={busy} onClick={() => { setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>{deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</div></article>)}</div>}
+        <button className="button quiet" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>{deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</div></article>)}</div>}
     </>}
-    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save to Library"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button></div></form>}</dialog>
+    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!hasPinChanges}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button></div></form>}</dialog>
   </>;
 }
