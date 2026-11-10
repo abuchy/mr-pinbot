@@ -63,7 +63,12 @@
   width: 36px;
   height: 36px;
 }
-.pin-selection input, .queue-actions input { accent-color: var(--burgundy); }
+.pin-selection input, .queue-selection input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--burgundy);
+}
 @media (max-width: 560px) {
   .publishing-preferences { grid-template-columns: 1fr; }
 }
@@ -89,7 +94,6 @@
   align-items: center;
   gap: 8px;
 }
-.queue-selection input { margin: 0; }
 .queue-actions > .button { margin-inline-start: auto; }
 .pinterest-account {
   display: flex;
