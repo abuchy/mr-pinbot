@@ -339,9 +339,11 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
       {queue && <h2 className="queue-heading">Ready to publish?</h2>}
       <div className="library-toolbar"><div className="filters" role="group" aria-label="Filter content">{Object.keys(counts).map(label => <button key={label} className={`filter ${filter === label ? "selected" : ""}`} aria-pressed={filter === label} onClick={() => { setFilter(label); setSelection([]); setBoards(undefined); setBoardId(""); }}>{label}<span>{counts[label]}</span></button>)}</div><label className="search-box"><Icon name="search" size={17}/><span className="sr-only">Search content</span><input type="search" placeholder="Search your library" value={query} onChange={event => { setQuery(event.target.value); setSelection([]); setBoards(undefined); }}/></label></div>
       {queue && <div className="form-actions queue-actions">
-        <label><input type="checkbox" checked={eligible.length > 0 && selected.length === eligible.length}
-          disabled={busy || !eligible.length} onChange={event => setSelection(event.target.checked ? eligible : [])}/> Select All</label>
-        <span>{selected.length} selected</span>
+        <div className="queue-selection">
+          <label><input type="checkbox" checked={eligible.length > 0 && selected.length === eligible.length}
+            disabled={busy || !eligible.length} onChange={event => setSelection(event.target.checked ? eligible : [])}/> Select All</label>
+          <span>({selected.length} selected)</span>
+        </div>
         {filter === "Drafts" ? <button className="button primary" disabled={busy || !selected.length} onClick={async () => {
           setBusy(true);
           setError("");

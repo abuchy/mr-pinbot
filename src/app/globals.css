@@ -78,6 +78,19 @@
 .pinterest-connection-body { padding: 24px var(--connection-inset); }
 .queue-workspace .library-toolbar { margin: 12px 0; }
 .queue-workspace .queue-actions { gap: 12px; margin: 0 0 16px; }
+.queue-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.queue-selection label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.queue-selection input { margin: 0; }
+.queue-actions > .button { margin-inline-start: auto; }
 .pinterest-account {
   display: flex;
   align-items: center;
