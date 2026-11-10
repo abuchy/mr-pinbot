@@ -121,7 +121,7 @@ export function CaptureForm() {
       {error && <p className="validation-error" role="alert">{error}</p>}
       {!signedIn && <p className="field-help"><a style={{ font: "inherit", color: "inherit" }} href="/library" target="_blank" rel="noreferrer">Sign in to Mr. Pinbot to save.</a></p>}
       <button className="button primary" disabled={busy || !signedIn || !imageUrl}>
-        {busy ? "Saving…" : "Save to Content Library"}
+        {busy ? "Saving…" : "Create Pin"}
       </button>
     </form>}
   </main>;
