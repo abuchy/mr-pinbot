@@ -62,8 +62,6 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--line);
-  background: white;
 }
 .pin-selection input, .queue-actions input { accent-color: var(--burgundy); }
 @media (max-width: 560px) {
