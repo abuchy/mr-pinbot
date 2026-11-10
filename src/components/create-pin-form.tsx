@@ -89,6 +89,8 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
             }}/>
           </label>
           <label className="field-label">Or Upload Image
+            <span className={styles.uploadPicker}>
+              <span aria-hidden="true">{file ? file.name : "Choose File"}</span>
             <input ref={upload} className={styles.upload} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => {
               const selected = event.target.files?.[0];
               if (!selected) return;
@@ -102,6 +104,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
               setFile(selected);
               setLocalPreview(URL.createObjectURL(selected));
             }}/>
+            </span>
           </label>
           {preview && <div>
             {(file || safePublicUrl(preview)) && <div className={styles.preview}>
