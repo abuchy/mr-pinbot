@@ -35,7 +35,7 @@
   position: relative;
   width: min(100%, 320px);
   aspect-ratio: 1;
-  margin: 0 auto 16px;
+  margin: 0 0 16px;
 }
 .preview img {
   object-fit: contain;
