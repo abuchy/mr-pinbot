@@ -67,7 +67,7 @@ export function CaptureForm() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || saved) return;
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
@@ -91,6 +91,7 @@ export function CaptureForm() {
       });
       const result = await response.json().catch(() => null);
       if (response.status !== 201 || !result?.id) throw new Error(result?.error || "The Draft could not be saved. Try again.");
+      clear();
       setSaved(true);
       try { localStorage.setItem("pinbot-library-changed", crypto.randomUUID()); } catch { /* optional refresh signal */ }
     } catch (failure) {
@@ -104,12 +105,8 @@ export function CaptureForm() {
 
   return <main className={styles.capture}>
     <div className={styles.brand}><Image src="/pinbot.png" width={25} height={40} alt=""/> Mr. Pinbot</div>
-    <h1>Let&apos;s Pin it.</h1>
-    {saved ? <div role="status">
-      <p><strong>Saved to your library!</strong></p>
-      <p>Your image is saved. The description will appear when it’s ready.</p>
-      <a className="button primary" href="/library" target="_blank" rel="noreferrer">Open Content Library</a>
-    </div> : <form onSubmit={save}>
+    <h1 aria-live="polite">{saved ? "Want to Pin again?" : "Let's Pin it."}</h1>
+    <form onSubmit={save}>
       {imageUrl && !previewFailed && <div className={styles.preview}>
         <Image src={imageUrl} alt="Selected product image" fill unoptimized referrerPolicy="no-referrer"
           onError={() => setPreviewFailed(true)}/>
@@ -133,6 +130,6 @@ export function CaptureForm() {
         {busy ? "Creating pin..." : "Create Pin"}
       </button>
       <button type="button" className="button quiet" disabled={busy} onClick={clear}>Clear</button></div>
-    </form>}
+    </form>
   </main>;
 }
