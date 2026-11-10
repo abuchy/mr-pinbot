@@ -111,7 +111,7 @@ export function CaptureForm() {
       <label className="field-label">Image URL
         <input type="text" readOnly value={copiedImage || capture?.source || ""}/>
       </label>
-      <label className="field-label">Pin title
+      <label className="field-label">Pin Title
         <input required maxLength={100} value={title} disabled={busy} onChange={event => setTitle(event.target.value)}/>
       </label>
       <label className="field-label">ShopMy Affiliate Link
