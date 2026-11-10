@@ -41,7 +41,7 @@
 }
 
 .publishing-preferences .field-label { margin: 0; }
-.publishing-preferences select, .import-panel select {
+.publishing-preferences input, .publishing-preferences select, .import-panel select {
   width: 100%;
   min-height: 43px;
   border: 1px solid var(--line);
@@ -49,6 +49,8 @@
   padding: 8px 12px;
   font: inherit;
 }
+
+.publishing-preferences input, .publishing-preferences select { height: 43px; }
 
 .queue-heading { margin-top: 30px; }
 .queue-actions { margin: 0 0 20px; }
