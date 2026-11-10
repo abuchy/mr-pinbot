@@ -1,6 +1,6 @@
 .form, .fields, .images {
   display: grid;
-  gap: 24px;
+  gap: 16px;
 }
 .fields {
   border: 0;
@@ -23,6 +23,13 @@
   object-fit: contain;
 }
 @media (max-width: 600px) {
-  .form, .fields, .images { gap: 20px; }
+  .form, .fields, .images { gap: 14px; }
   .upload { padding: 16px; }
+}
+
+.fields label {
+  margin: 0;
+}
+.form > :global(.form-actions) {
+  margin-top: 0;
 }
