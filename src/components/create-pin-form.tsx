@@ -80,7 +80,15 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
           <input type="url" required maxLength={2048} value={affiliate} onChange={event => setAffiliate(event.target.value)}/>
         </label>
         <div className={styles.images}>
-          <label className="field-label">Product Image
+          <label className="field-label">Image URL
+            <input type="url" maxLength={2048} value={imageUrl} onChange={event => {
+              setImageUrl(event.target.value);
+              setFile(undefined);
+              setLocalPreview("");
+              if (upload.current) upload.current.value = "";
+            }}/>
+          </label>
+          <label className="field-label">Or Upload Image
             <input ref={upload} className={styles.upload} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => {
               const selected = event.target.files?.[0];
               if (!selected) return;
@@ -93,14 +101,6 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
               setImageUrl("");
               setFile(selected);
               setLocalPreview(URL.createObjectURL(selected));
-            }}/>
-          </label>
-          <label className="field-label">Or paste an image URL
-            <input type="url" maxLength={2048} value={imageUrl} onChange={event => {
-              setImageUrl(event.target.value);
-              setFile(undefined);
-              setLocalPreview("");
-              if (upload.current) upload.current.value = "";
             }}/>
           </label>
           {preview && <div>
