@@ -154,4 +154,4 @@
 .content-card-body > .affiliate-link:has(+ .pin-attention) { margin-bottom: 14px; }
 .content-card .pin-attention { margin: 0 0 14px; font-style: italic; }
 
-.content-card .pin-description { margin: 0 0 24px; }
+.content-card .pin-description { margin: 0 0 32px; }
