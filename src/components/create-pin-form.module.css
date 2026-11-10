@@ -1,0 +1,28 @@
+.form, .fields, .images {
+  display: grid;
+  gap: 24px;
+}
+.fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.upload {
+  padding: 24px;
+  border: 1px dashed #999;
+  width: 100%;
+}
+.preview {
+  position: relative;
+  width: min(100%, 320px);
+  aspect-ratio: 1;
+  margin-bottom: 16px;
+}
+.preview img {
+  object-fit: contain;
+}
+@media (max-width: 600px) {
+  .form, .fields, .images { gap: 20px; }
+  .upload { padding: 16px; }
+}
