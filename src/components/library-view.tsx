@@ -191,17 +191,6 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
     }catch(e){setError(e instanceof Error?e.message:'Couldn’t delete this item.');}
     finally{setBusy(false);}
   }
-  async function retryMissingDetails(item: ContentItem) {
-    setBusy(true);
-    setError("");
-    setMessage("");
-    closeEditor();
-    try {
-      await enrichItems([item]);
-    } finally {
-      setBusy(false);
-    }
-  }
   function closeEditor() { editor.current?.close(); setEditing(null); setEditorError(""); }
   async function saveDetails(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!editing || !hasPinChanges || busy || descriptionBusy || imageBusy) return;
@@ -375,20 +364,19 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         const locked = job && ["published", "publishing", "needs_verification"].includes(job.publish_status);
         const findingDetails = progress[item.id] === 'queued' || progress[item.id] === 'processing';
         const showAttention = !locked && !findingDetails && needsDetails(item);
-        const cardDetails = <>
-          {item.product_description && !isBlockedMetadata(item.product_description) && <p>{item.product_description}</p>}
-          {job && publicationDetails(job)}
-        </>;
+        const description = item.product_description && !isBlockedMetadata(item.product_description)
+          && <p className="pin-description">{item.product_description}</p>;
         return <article className="content-card" key={item.id}>{queue && <label className="pin-selection"><input type="checkbox"
         aria-label={`Select ${item.product_name || "draft Pin"}`} disabled={busy || !!locked}
         checked={selected.includes(item.id)} onChange={event => setSelection(previous => event.target.checked
-          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3><a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{!showAttention && cardDetails}
+          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3><a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{!showAttention && description}{!showAttention && job && publicationDetails(job)}
         {!locked && <>
           {findingDetails && <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>}
           {!showAttention && progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
           {showAttention && <p className="field-help pin-attention"><span aria-hidden="true">⚠︎</span>{" "}Needs attention: Retry or add missing details.</p>}
+          {showAttention && description}
           <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
-          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}{showAttention && cardDetails}</div></article>;
+          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}{showAttention && job && publicationDetails(job)}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
         <PinThumbnail url={job.image_url} title={job.title}/>
         <div className="content-card-body"><h3>{job.title}</h3>
@@ -397,8 +385,6 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         </div>
       </article>)}</div>}
     </>}
-    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!hasPinChanges}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button>{needsDetails(editing) && <button className="button quiet" type="button"
-      disabled={busy || descriptionBusy || imageBusy || hasPinChanges}
-      onClick={() => void retryMissingDetails(editing)}>Retry missing details</button>}</div></form>}</dialog>
+    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!hasPinChanges}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button></div></form>}</dialog>
   </>;
 }
