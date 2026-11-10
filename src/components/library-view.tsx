@@ -374,19 +374,23 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
       {!loaded ? <p role="status">{error ? "Your library couldn’t be loaded. Retry above." : "Loading your library…"}</p> : visible.length === 0 && visibleArchive.length === 0 ? <section className="section-panel"><EmptyState icon="library" title={queue || items.length ? "No matching Pins." : "Your next find starts here."}>{queue || items.length ? "Try another filter or search." : "Paste your first ShopMy link above. No spreadsheets needed."}</EmptyState></section> : <div className="content-grid">{visible.map(item => {
         const job = byContent.get(item.id);
         const locked = job && ["published", "publishing", "needs_verification"].includes(job.publish_status);
+        const findingDetails = progress[item.id] === 'queued' || progress[item.id] === 'processing';
+        const showAttention = !locked && !findingDetails && needsAttention(item);
+        const cardDetails = <>
+          {item.product_description && !isBlockedMetadata(item.product_description) && <p>{item.product_description}</p>}
+          {job && publicationDetails(job)}
+        </>;
         return <article className="content-card" key={item.id}>{queue && <label className="pin-selection"><input type="checkbox"
         aria-label={`Select ${item.product_name || "draft Pin"}`} disabled={busy || !!locked}
         checked={selected.includes(item.id)} onChange={event => setSelection(previous => event.target.checked
-          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3><a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{item.product_description && !isBlockedMetadata(item.product_description) && <p>{item.product_description}</p>}
-        {job && publicationDetails(job)}
-        {!locked && <>{progress[item.id] === 'queued' || progress[item.id] === 'processing'
-        ? <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>
-        : needsAttention(item) && <>
-          <p className="field-help"><strong>Needs attention</strong> · {item.enrichment_report?.import_notice || 'Some details are missing.'}</p>
-          <button className="button quiet" disabled={busy} onClick={() => void retryImport(item)}>Retry product details</button>
-        </>}
-        {progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
-        <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>{deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}</div></article>;
+          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3>{showAttention && cardDetails}<a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{!showAttention && cardDetails}
+        {!locked && <>
+          {findingDetails && <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>}
+          {!showAttention && progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
+          {showAttention && <button className="button quiet" disabled={busy} onClick={() => void retryImport(item)}>Retry product details</button>}
+          <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
+          {showAttention && <p className="field-help pin-attention"><strong>Needs attention</strong> · Missing product details. Retry or edit this Pin.</p>}
+          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
         <PinThumbnail url={job.image_url} title={job.title}/>
         <div className="content-card-body"><h3>{job.title}</h3>
