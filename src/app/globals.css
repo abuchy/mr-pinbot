@@ -151,5 +151,5 @@
   .publishing-preferences select { appearance: auto; background-image: none; }
 }
 
-.content-card .pin-attention { margin-top: 12px; }
-.content-card-body > .affiliate-link:has(+ .button.quiet) { margin-bottom: 10px; }
+.content-card-body > .affiliate-link:has(+ .pin-attention) { margin-bottom: 14px; }
+.content-card .pin-attention { margin: 0 0 14px; }
