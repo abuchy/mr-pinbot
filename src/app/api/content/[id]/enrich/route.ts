@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { enrichFromAuthorizedSources } from '@/lib/enrichment';
-import { hostEnrichedImage, storeProductImage } from '@/lib/product-images';
+import { hostEnrichedImage, imageFailureCode, storeProductImage } from '@/lib/product-images';
 import { describeImage } from '@/lib/description';
 import { isBlockedMetadata } from '@/lib/enrichment/blocked';
-import type { Fields } from '@/lib/enrichment/model';
+import { attempt, type Fields } from '@/lib/enrichment/model';
 import type { ContentItem } from '@/lib/content';
 
 export const maxDuration = 60;
@@ -47,12 +47,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ...report, ...result.enrichment_report, checked_at: claimedAt,
         variant_review: result.enrichment_report.variant_review,
         fields: { ...report.fields, ...result.enrichment_report.fields },
+        attempts: [...result.enrichment_report.attempts, ...(hosted.image_code ? [
+          attempt('metadata', 'product_image', hosted.image_code, hosted.image_notice || 'No verified image URL was found.'),
+        ] : [])],
       };
+      console.info('[pinbot:enrichment]', { id, attempts: report.attempts.map(({ source, code }) => ({ source, code })) });
     }
     if (!fields.image_url && item.image_url && !item.image_url.includes('/storage/v1/object/public/product-images/')) {
       try {
         Object.assign(fields, await storeProductImage(database, user.id, item.image_url, item.product_name));
       } catch (error) {
+        console.warn('[pinbot:image]', { id, code: imageFailureCode(error) });
         notice = error instanceof Error ? error.message : 'The image could not be stored.';
       }
     }
@@ -67,6 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ...fields, enrichment_report: report, enrichment_status: merged.product_name || merged.image_url ? 'partial' : 'pending',
       updated_at: checkpointAt,
     }).eq('id', id).eq('owner_id', user.id).eq('updated_at', claimedAt).select('*').maybeSingle();
+    if (checkpoint.error) console.warn('[pinbot:enrichment]', { id, code: 'metadata_persistence_failed', databaseCode: checkpoint.error.code });
     if (checkpoint.error || !checkpoint.data) return privateJson({ error: 'This Pin changed during import. Refresh before retrying.' }, 409);
 
     const descriptionFields: { product_description?: string; description_image_url?: string; description_is_manual?: boolean } = {};
@@ -89,6 +95,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       enrichment_report: { ...report, import_notice: complete ? '' : notice || (uncertain ? report.variant_review : report.import_notice) },
       updated_at: new Date().toISOString(),
     }).eq('id', id).eq('owner_id', user.id).eq('updated_at', checkpointAt).select('*').maybeSingle();
+    if (saved.error) console.warn('[pinbot:enrichment]', { id, code: 'description_persistence_failed', databaseCode: saved.error.code });
     if (saved.error || !saved.data) return privateJson({ error: 'This Pin changed during import. Refresh before retrying.' }, 409);
     return privateJson({ item: saved.data, complete });
   } catch {

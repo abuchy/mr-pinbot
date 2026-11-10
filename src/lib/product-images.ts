@@ -43,6 +43,16 @@ export async function originalImageUrl(db:SupabaseClient,owner:string,url:string
  return typeof original==='string'&&original.length<=2048&&original&&safePublicUrl(original)&&!objectPath(original)?original:data.source_url;
 }
 
+class ProductImageError extends Error {
+ constructor(readonly code: string, message: string, readonly detail?: string) {
+  super(message);
+ }
+}
+
+export function imageFailureCode(error: unknown) {
+ return error instanceof ProductImageError ? error.code : 'image_storage_failed';
+}
+
 export async function storeProductImage(db:SupabaseClient,owner:string,source:string,title:string){
  if(!source||source.length>2048||!safePublicUrl(source))throw new Error('Use a public HTTPS image URL.');
  const bucket=db.storage.from(bucketName);
@@ -54,35 +64,49 @@ export async function storeProductImage(db:SupabaseClient,owner:string,source:st
  const path=objectPath(source);
  const assets=db.from('product_image_assets');
  const {data:cached,error}=await assets.select('object_path,source_url,byte_size').eq('owner_id',owner).eq(path?'object_path':'source_url',path||source).limit(1).maybeSingle();
- if(error)throw new Error('Image storage is unavailable. Retry from the Pin editor.');
+ if(error)throw new ProductImageError('image_storage_lookup_failed', 'Image storage is unavailable. Retry from the Pin editor.', error.code);
  if(cached&&await verified(cached).catch(()=>false))return {image_url:publicUrl(cached),original_image_url:path?cached.source_url:source};
  if(path)throw new Error('The stored image is unavailable. Retry using its original image URL.');
- let optimized:Buffer,hash:string;
- try{
-  const response=await publicBinaryRequest(new URL(source),{maxBytes:8_000_000,accept:'image/webp,image/png,image/jpeg',imageOnly:true});
-  hash=createHash('sha256').update(response.body).digest('hex');
-  optimized=await optimizeProductImage(response.body);
- }catch{throw new Error('The source image could not be downloaded or optimized. Your other Pin details are unchanged.');}
+ let bytes: Buffer;
+ try {
+  const response = await publicBinaryRequest(new URL(source), {
+   maxBytes: 8_000_000, accept: 'image/webp,image/png,image/jpeg', imageOnly: true,
+  });
+  bytes = response.body;
+ } catch (error) {
+  throw new ProductImageError('image_download_failed', 'The source image could not be downloaded.',
+   error instanceof Error && 'code' in error ? String(error.code) : undefined);
+ }
+ const hash = createHash('sha256').update(bytes).digest('hex');
+ let optimized: Buffer;
+ try {
+  optimized = await optimizeProductImage(bytes);
+ } catch {
+  throw new ProductImageError('image_decode_failed', 'The source did not contain a usable product image.');
+ }
  const asset={owner_id:owner,hash,object_path:`${owner}/${hash}/${imageFilename(title,hash)}`,source_url:source,byte_size:optimized.length};
  const {error:reservationError}=await assets.upsert(asset,{onConflict:'owner_id,hash',ignoreDuplicates:true});
- if(reservationError)throw new Error('Image storage could not reserve a file. Retry from the Pin editor.');
+ if(reservationError)throw new ProductImageError('image_storage_reservation_failed', 'Image storage could not reserve a file.', reservationError.code);
  const {data:reserved}=await assets.select('object_path,source_url,byte_size').eq('owner_id',owner).eq('hash',hash).single();
  if(!reserved)throw new Error('Image storage could not find the reserved file.');
  if(!await verified(reserved).catch(()=>false)){
-  await bucket.upload(reserved.object_path,optimized,{contentType:'image/webp',cacheControl:'31536000',upsert:false});
-  if(!await verified(reserved).catch(()=>false))throw new Error('The upload could not be verified. Retry from the Pin editor.');
+  const {error: uploadError}=await bucket.upload(reserved.object_path,optimized,{contentType:'image/webp',cacheControl:'31536000',upsert:false});
+  if(!await verified(reserved).catch(()=>false))throw new ProductImageError(uploadError ? 'image_storage_upload_failed' : 'image_storage_verification_failed', 'The upload could not be verified. Retry from the Pin editor.', uploadError?.name);
  }
  return {image_url:publicUrl(reserved),original_image_url:source};
 }
 
-export async function hostEnrichedImage(result:Result,db:SupabaseClient,owner:string):Promise<{ image_url?: string; original_image_url?: string; image_notice?: string }>{
+export async function hostEnrichedImage(result:Result,db:SupabaseClient,owner:string):Promise<{ image_url?: string; original_image_url?: string; image_notice?: string; image_code?: string }>{
  const source=result.suggestions.image_url;
- if(!source)return {image_notice:result.enrichment_report.variant_review && !result.enrichment_report.variant?'No exact variant image was selected. Add the matching image URL to continue.':undefined};
+ if(!source)return {image_code:'image_metadata_missing',image_notice:result.enrichment_report.variant_review && !result.enrichment_report.variant?'No exact variant image was selected. Add the matching image URL to continue.':undefined};
  try{
   const stored=await storeProductImage(db,owner,source,result.suggestions.product_name||'Product');
   result.suggestions.image_url=stored.image_url;
   return stored;
  }catch(error){
-  return {original_image_url:source,image_notice:error instanceof Error?error.message:'Image storage is unavailable.'};
+  console.warn('[pinbot:image]', {code:imageFailureCode(error), host:new URL(source).hostname,
+   detail:error instanceof ProductImageError ? error.detail : undefined});
+  delete result.suggestions.image_url;
+  return {original_image_url:source,image_code:imageFailureCode(error),image_notice:error instanceof Error?error.message:'Image storage is unavailable.'};
  }
 }

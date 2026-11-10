@@ -191,6 +191,17 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
     }catch(e){setError(e instanceof Error?e.message:'Couldn’t delete this item.');}
     finally{setBusy(false);}
   }
+  async function retryMissingDetails(item: ContentItem) {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    closeEditor();
+    try {
+      await enrichItems([item]);
+    } finally {
+      setBusy(false);
+    }
+  }
   function closeEditor() { editor.current?.close(); setEditing(null); setEditorError(""); }
   async function saveDetails(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!editing || !hasPinChanges || busy || descriptionBusy || imageBusy) return;
@@ -386,6 +397,8 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         </div>
       </article>)}</div>}
     </>}
-    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!hasPinChanges}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button></div></form>}</dialog>
+    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!hasPinChanges}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button>{needsDetails(editing) && <button className="button quiet" type="button"
+      disabled={busy || descriptionBusy || imageBusy || hasPinChanges}
+      onClick={() => void retryMissingDetails(editing)}>Retry missing details</button>}</div></form>}</dialog>
   </>;
 }
