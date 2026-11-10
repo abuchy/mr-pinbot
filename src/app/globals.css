@@ -155,3 +155,15 @@
 .content-card .pin-attention { margin: 0 0 14px; font-style: italic; }
 
 .content-card .pin-description { margin: 0 0 32px; }
+
+.content-card {
+  display: flex;
+  flex-direction: column;
+}
+.content-card > .content-thumbnail { flex: none; }
+.content-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.pin-card-actions { margin-top: auto; }

@@ -375,8 +375,10 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
           {!showAttention && progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
           {showAttention && <p className="field-help pin-attention"><span aria-hidden="true">⚠︎</span>{" "}Needs attention: Retry or add missing details.</p>}
           {showAttention && description}
+          {showAttention && job && publicationDetails(job)}
+          <div className="pin-card-actions">
           <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
-          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}{showAttention && job && publicationDetails(job)}</div></article>;
+          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</div></>}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
         <PinThumbnail url={job.image_url} title={job.title}/>
         <div className="content-card-body"><h3>{job.title}</h3>
