@@ -63,6 +63,7 @@ export function CaptureForm() {
     setCapture(undefined);
     setPreviewFailed(false);
     setError("");
+    setSaved(false);
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -70,6 +71,7 @@ export function CaptureForm() {
     if (busy) return;
     setBusy(true);
     setError("");
+    setSaved(false);
     try {
       const session = (await browserDatabase()?.auth.getSession())?.data.session;
       if (!session) throw new Error("Sign in to Mr. Pinbot before saving.");
@@ -105,7 +107,7 @@ export function CaptureForm() {
 
   return <main className={styles.capture}>
     <div className={styles.brand}><Image src="/pinbot.png" width={25} height={40} alt=""/> Mr. Pinbot</div>
-    <h1 aria-live="polite">{saved ? "Want to Pin again?" : "Let's Pin it."}</h1>
+    <h1>Let&apos;s Pin it.</h1>
     <form onSubmit={save}>
       {imageUrl && !previewFailed && <div className={styles.preview}>
         <Image src={imageUrl} alt="Selected product image" fill unoptimized referrerPolicy="no-referrer"
@@ -126,6 +128,7 @@ export function CaptureForm() {
       </label>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {!signedIn && <p className="field-help"><a style={{ font: "inherit", color: "inherit" }} href="/library" target="_blank" rel="noreferrer">Sign in to Mr. Pinbot to save.</a></p>}
+      {saved && <p className="import-alert" role="status">Pin added to your library!</p>}
       <div className="form-actions"><button className="button primary" disabled={busy || !signedIn || !imageUrl}>
         {busy ? "Creating pin..." : "Create Pin"}
       </button>
