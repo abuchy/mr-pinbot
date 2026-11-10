@@ -39,6 +39,7 @@
 }
 .preview img {
   object-fit: contain;
+  object-position: left center;
 }
 @media (max-width: 600px) {
   .form, .fields, .images { gap: 14px; }
