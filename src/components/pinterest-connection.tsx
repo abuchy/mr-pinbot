@@ -81,7 +81,12 @@ export function PinterestConnection() {
   return <section className="section-panel" aria-labelledby="pinterest-connection-title">
     <div className="section-header">
       <h2 id="pinterest-connection-title">Pinterest Connection</h2>
-      {connection?.status === "connected" && <span className="build-status"><span className="status-dot"/>Connected</span>}
+      {connection && <span className="build-status">
+        <span className="pinterest-status-dot" data-connected={connection.status === "connected"} aria-hidden="true"/>
+        {connection.status === "connected" ? "Connected"
+          : connection.status === "reconnect_required" ? "Reconnect required"
+          : connection.status === "setup_required" ? "Setup required" : "Disconnected"}
+      </span>}
     </div>
     <div className="pinterest-connection-body">
     {notice && <p role="status">{notice}</p>}

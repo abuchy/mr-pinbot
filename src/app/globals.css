@@ -87,3 +87,31 @@
   .queue-preferences-panel, .pinterest-connection-body { padding: 18px; }
   .pinterest-account { flex-direction: column; align-items: flex-start; }
 }
+
+.pinterest-status-dot {
+  position: relative;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #999;
+}
+
+.pinterest-status-dot[data-connected="true"] { background: #26bd43; }
+.pinterest-status-dot[data-connected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: rgb(38 189 67 / 24%);
+  animation: pinterest-status-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes pinterest-status-pulse {
+  0%, 100% { transform: scale(.85); opacity: 1; }
+  50% { transform: scale(1.25); opacity: .55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinterest-status-dot[data-connected="true"]::after { animation: none; }
+}
