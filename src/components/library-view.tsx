@@ -176,16 +176,6 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
     }
   }
 
-  async function retryImport(item: ContentItem) {
-    setBusy(true);
-    setMessage("");
-    setError("");
-    try {
-      await enrichItems([item]);
-    } finally {
-      setBusy(false);
-    }
-  }
   const describe=useCallback(async(image_url:string,title:string)=>request('/api/describe',{method:'POST',body:JSON.stringify({image_url,title})}),[request]);
   const hostImage=useCallback(async(image_url:string,title:string)=>request('/api/product-image',{method:'POST',body:JSON.stringify({image_url,title})}),[request]);
   async function deleteItem(item: ContentItem) {
@@ -224,13 +214,11 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
   if (text.trim()) { try { preview = previewImport(text); } catch (e) { previewError = e instanceof Error ? e.message : "Check your links."; } }
   const existing = new Set(items.map(item => item.source_key));
   const alreadySaved = preview?.links.filter(link => existing.has(link.source_key)).length ?? 0;
-  const needsDetails = (item: ContentItem) => (!item.product_name || isBlockedMetadata(item.product_name)) || !(item.website_url||item.affiliate_url) || !item.image_url || !item.product_description;
+  const needsDetails = (item: ContentItem) => (!item.product_name || isBlockedMetadata(item.product_name)) || !(item.website_url||item.affiliate_url) || !item.image_url || !item.product_description || isBlockedMetadata(item.product_description);
   const statuses = Object.values(progress);
   const finished = statuses.filter(status => status === 'completed').length;
   const attention = statuses.filter(status => status === 'attention').length;
   const processing = statuses.length - finished - attention;
-  const needsAttention = (item: ContentItem) => progress[item.id] === 'attention' || needsDetails(item) ||
-    item.enrichment_status === 'pending' || item.enrichment_status === 'partial';
   const byContent = new Map(jobs.map(job => [job.content_id, job]));
   const itemIds = new Set(items.map(item => item.id));
   const archived = jobs.filter(job => job.publish_status === "published" && !itemIds.has(job.content_id));
@@ -375,7 +363,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         const job = byContent.get(item.id);
         const locked = job && ["published", "publishing", "needs_verification"].includes(job.publish_status);
         const findingDetails = progress[item.id] === 'queued' || progress[item.id] === 'processing';
-        const showAttention = !locked && !findingDetails && needsAttention(item);
+        const showAttention = !locked && !findingDetails && needsDetails(item);
         const cardDetails = <>
           {item.product_description && !isBlockedMetadata(item.product_description) && <p>{item.product_description}</p>}
           {job && publicationDetails(job)}
@@ -387,8 +375,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         {!locked && <>
           {findingDetails && <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>}
           {!showAttention && progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
-          {showAttention && <p className="field-help pin-attention"><strong>Needs attention</strong> · Missing product details. Retry or edit this Pin.</p>}
-          {showAttention && <button className="button quiet" disabled={busy} onClick={() => void retryImport(item)}>Retry product details</button>}
+          {showAttention && <p className="field-help pin-attention"><strong>Needs attention</strong> · Missing product details. Edit this Pin to continue.</p>}
           <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
           {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}{showAttention && cardDetails}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
