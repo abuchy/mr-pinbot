@@ -375,7 +375,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         {!locked && <>
           {findingDetails && <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>}
           {!showAttention && progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
-          {showAttention && <p className="field-help pin-attention"><strong>Needs attention</strong> · Missing product details. Edit this Pin to continue.</p>}
+          {showAttention && <p className="field-help pin-attention"><strong>Needs attention:</strong> Retry or add missing details</p>}
           <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
           {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</>}{showAttention && cardDetails}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
