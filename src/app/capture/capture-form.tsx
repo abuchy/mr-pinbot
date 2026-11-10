@@ -56,6 +56,15 @@ export function CaptureForm() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  function clear() {
+    setTitle("");
+    setAffiliate("");
+    setCopiedImage("");
+    setCapture(undefined);
+    setPreviewFailed(false);
+    setError("");
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || saved) return;
@@ -120,9 +129,10 @@ export function CaptureForm() {
       </label>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {!signedIn && <p className="field-help"><a style={{ font: "inherit", color: "inherit" }} href="/library" target="_blank" rel="noreferrer">Sign in to Mr. Pinbot to save.</a></p>}
-      <button className="button primary" disabled={busy || !signedIn || !imageUrl}>
+      <div className="form-actions"><button className="button primary" disabled={busy || !signedIn || !imageUrl}>
         {busy ? "Creating pin..." : "Create Pin"}
       </button>
+      <button type="button" className="button quiet" disabled={busy} onClick={clear}>Clear</button></div>
     </form>}
   </main>;
 }

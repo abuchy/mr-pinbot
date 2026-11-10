@@ -20,4 +20,4 @@
 }
 .preview img { object-fit: contain; }
 .capture input { min-width: 0; }
-.capture button { margin-top: 16px; }
+.capture :global(.form-actions) { margin-top: 16px; }

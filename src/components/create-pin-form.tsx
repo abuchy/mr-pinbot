@@ -35,6 +35,14 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
     if (upload.current) upload.current.value = "";
   }
 
+  function clear() {
+    setTitle("");
+    setAffiliate("");
+    removeImage();
+    setError("");
+    setMessage("");
+  }
+
   async function create(event: FormEvent) {
     event.preventDefault();
     if (!valid || disabled || submitting.current) return;
@@ -55,9 +63,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
       });
       const result = await response.json().catch(() => null);
       if (response.status !== 201 || !result?.id) throw new Error(result?.error || "Could not confirm the save. Check your library before trying again.");
-      setTitle("");
-      setAffiliate("");
-      removeImage();
+      clear();
       setMessage("Pin added to your library!");
       try { localStorage.setItem("pinbot-library-changed", crypto.randomUUID()); } catch { /* Refresh still runs below. */ }
       onCreated();
@@ -119,7 +125,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
       </fieldset>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {message && <p className="import-alert" role="status">{message}</p>}
-      <div className="form-actions"><button className="button primary" disabled={disabled || busy || !valid}>{busy ? "Creating pin..." : "Create Pin"}</button></div>
+      <div className="form-actions"><button className="button primary" disabled={disabled || busy || !valid}>{busy ? "Creating pin..." : "Create Pin"}</button><button type="button" className="button quiet" disabled={disabled || busy} onClick={clear}>Clear</button></div>
     </form>
   </section>;
 }
