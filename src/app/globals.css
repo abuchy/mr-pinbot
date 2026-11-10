@@ -72,7 +72,12 @@
 
 .queue-workspace + .section-panel { margin-top: 24px; }
 
-.queue-preferences-panel, .pinterest-connection-body { padding: 24px; }
+.queue-preferences-panel { padding: 24px; }
+.section-panel[aria-labelledby="pinterest-connection-title"] { --connection-inset: 24px; }
+.section-panel[aria-labelledby="pinterest-connection-title"] > .section-header {
+  padding-inline: var(--connection-inset);
+}
+.pinterest-connection-body { padding: 24px var(--connection-inset); }
 .queue-workspace .library-toolbar { margin: 12px 0; }
 .queue-workspace .queue-actions { gap: 12px; margin: 0 0 16px; }
 .pinterest-account {
@@ -85,7 +90,9 @@
 
 @media (max-width: 560px) {
   .queue-preferences-panel, .pinterest-connection-body { padding: 18px; }
+  .section-panel[aria-labelledby="pinterest-connection-title"] { --connection-inset: 18px; }
   .pinterest-account { flex-direction: column; align-items: flex-start; }
+  .pinterest-account > .button { align-self: flex-end; }
 }
 
 .pinterest-status-dot {
