@@ -11,6 +11,7 @@ const navigation: { href: string; label: string; icon: IconName; number: string 
 ];
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  if (pathname === "/capture") return children;
   const section = navigation.find(item => item.href === pathname)?.label ?? "Workspace";
   return <>
     <a className="skip-link" href="#main-content">Skip to content</a>

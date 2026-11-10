@@ -1,0 +1,23 @@
+.capture {
+  width: min(100%, 510px);
+  margin: auto;
+  padding: 24px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.capture h1 {
+  margin: 14px 0 20px;
+  font-size: 28px;
+}
+.preview {
+  position: relative;
+  height: 225px;
+  background: #fafafa;
+}
+.preview img { object-fit: contain; }
+.capture input { min-width: 0; }
+.capture button { margin-top: 16px; }

@@ -77,6 +77,17 @@ export async function storeProductImage(db:SupabaseClient,owner:string,source:st
   throw new ProductImageError('image_download_failed', 'The source image could not be downloaded.',
    error instanceof Error && 'code' in error ? String(error.code) : undefined);
  }
+ return saveProductImageBytes(db,owner,bytes,title,source);
+}
+
+export async function saveProductImageBytes(db:SupabaseClient,owner:string,bytes:Buffer,title:string,source = ''){
+ const bucket=db.storage.from(bucketName);
+ const publicUrl=(asset:Asset)=>bucket.getPublicUrl(asset.object_path).data.publicUrl;
+ const verified=async(asset:Asset)=>{
+  const response=await fetch(publicUrl(asset),{method:'HEAD',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)});
+  return response.ok && response.headers.get('content-type')?.split(';')[0]==='image/webp' && Number(response.headers.get('content-length'))===asset.byte_size;
+ };
+ const assets=db.from('product_image_assets');
  const hash = createHash('sha256').update(bytes).digest('hex');
  let optimized: Buffer;
  try {
