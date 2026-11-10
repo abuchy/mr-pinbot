@@ -83,17 +83,19 @@ export function PinterestConnection() {
       <h2 id="pinterest-connection-title">Pinterest Connection</h2>
       {connection?.status === "connected" && <span className="build-status"><span className="status-dot"/>Connected</span>}
     </div>
+    <div className="pinterest-connection-body">
     {notice && <p role="status">{notice}</p>}
     {error && <p role="alert">{error} <button className="inline-button" onClick={() => void run()}>Retry</button></p>}
     {signedOut ? <Link className="text-link" href="/library">Sign in to connect Pinterest</Link>
-      : connection?.status === "connected" ? <>
+      : connection?.status === "connected" ? <div className="pinterest-account">
         <p><strong>@{connection.profile?.username}</strong><br/>Pinterest Business Account</p>
         <button className="button quiet" disabled={busy} onClick={() => {
           if (window.confirm("Disconnect Pinterest from Mr. Pinbot?")) void run("DELETE");
         }}>Disconnect</button>
-      </> : <button className="button primary" disabled={busy || connection?.status === "setup_required"} onClick={() => {
+      </div> : <button className="button primary" disabled={busy || connection?.status === "setup_required"} onClick={() => {
         if (connection?.tier !== "standard" && !window.confirm("Trial access uses the Pinterest Sandbox. Trial Pins are not published publicly. Continue connecting?")) return;
         void run("POST");
       }}>Connect Pinterest</button>}
+    </div>
   </section>;
 }

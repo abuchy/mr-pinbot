@@ -71,3 +71,19 @@
 }
 
 .queue-workspace + .section-panel { margin-top: 24px; }
+
+.queue-preferences-panel, .pinterest-connection-body { padding: 24px; }
+.queue-workspace .library-toolbar { margin: 12px 0; }
+.queue-workspace .queue-actions { gap: 12px; margin: 0 0 16px; }
+.pinterest-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pinterest-account p { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  .queue-preferences-panel, .pinterest-connection-body { padding: 18px; }
+  .pinterest-account { flex-direction: column; align-items: flex-start; }
+}
