@@ -119,7 +119,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
       </fieldset>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {message && <p className="import-alert" role="status">{message}</p>}
-      <div className="form-actions"><button className="button primary" disabled={disabled || busy || !valid}>{busy ? "Creating Pin…" : "Create Pin"}</button></div>
+      <div className="form-actions"><button className="button primary" disabled={disabled || busy || !valid}>{busy ? "Creating pin..." : "Create Pin"}</button></div>
     </form>
   </section>;
 }
