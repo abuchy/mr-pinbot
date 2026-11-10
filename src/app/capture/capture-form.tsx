@@ -132,7 +132,7 @@ export function CaptureForm() {
       <div className="form-actions"><button className="button primary" disabled={busy || !signedIn || !imageUrl}>
         {busy ? "Creating pin..." : "Create Pin"}
       </button>
-      <button type="button" className="button quiet" disabled={busy} onClick={clear}>Clear</button></div>
+      <button type="button" className="button primary" disabled={busy} onClick={clear}>Clear</button></div>
     </form>
   </main>;
 }
