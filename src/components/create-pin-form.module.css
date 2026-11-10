@@ -33,3 +33,7 @@
 .form > :global(.form-actions) {
   margin-top: 0;
 }
+
+.form {
+  margin-top: 24px;
+}
