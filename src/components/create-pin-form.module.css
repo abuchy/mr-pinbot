@@ -81,3 +81,5 @@
 .fields :global(.pin-board-select) option {
   color: var(--ink);
 }
+
+.panel { background-color: #fff; }

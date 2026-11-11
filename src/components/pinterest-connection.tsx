@@ -81,7 +81,7 @@ export function PinterestConnection({ onDisconnect }: { onDisconnect?: () => voi
     return () => window.clearTimeout(timer);
   }, [run]);
 
-  return <section className="section-panel" aria-labelledby="pinterest-connection-title">
+  return <section className="section-panel pinterest-connection-panel" aria-labelledby="pinterest-connection-title">
     <div className="section-header">
       <h2 id="pinterest-connection-title">Pinterest Connection</h2>
       {connection && <span className="build-status">

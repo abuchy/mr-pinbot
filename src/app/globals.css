@@ -194,3 +194,11 @@
 }
 .pin-card-links .delete-link { margin-top: 0; }
 .publish-now-link { margin-left: auto; }
+
+.welcome-panel,
+.stats-grid,
+.content-card,
+.queue-preferences-panel,
+.pinterest-connection-panel {
+  background-color: #fff;
+}
