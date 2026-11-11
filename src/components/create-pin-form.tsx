@@ -89,7 +89,6 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
         <label className="field-label">ShopMy Affiliate Link
           <input type="url" required maxLength={2048} value={affiliate} onChange={event => setAffiliate(event.target.value)}/>
         </label>
-        <PinBoardSelect value={boardId} onChange={setBoardId} disabled={disabled || busy}/>
         <div className={styles.images}>
           <label className="field-label">Image URL
             <input type="url" maxLength={2048} value={imageUrl} onChange={event => {
@@ -127,6 +126,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
             <button type="button" className="inline-button" onClick={removeImage}>Remove image</button>
           </div>}
         </div>
+        <PinBoardSelect value={boardId} onChange={setBoardId} disabled={disabled || busy}/>
       </fieldset>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {message && <p className="import-alert" role="status">{message}</p>}

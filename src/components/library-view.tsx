@@ -174,7 +174,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         delete next[editing.id];
         return next;
       });
-      closeEditor(); setMessage("Product details saved.");
+      closeEditor(); setMessage(queue ? "Product details saved." : "");
       window.localStorage.setItem(syncKey, crypto.randomUUID());
       await load();
     } catch (e) { setEditorError(e instanceof Error ? e.message : "Couldn’t save details."); }
