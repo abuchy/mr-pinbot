@@ -24,6 +24,8 @@ export function AnalyticsView() {
   const [preset, setPreset] = useState("30");
   const [dates, setDates] = useState(() => analyticsRange(30));
   const bounds = analyticsRange(90);
+  const yearToDate = { start: `${bounds.end.slice(0, 4)}-01-01`, end: bounds.end };
+  const yearToDateAvailable = validAnalyticsRange(yearToDate.start, yearToDate.end);
   const rangeValid = validAnalyticsRange(dates.start, dates.end);
   function changeDate(field: "start" | "end", value: string) {
     setPreset("custom");
@@ -176,9 +178,14 @@ export function AnalyticsView() {
         <label>Account range<select value={preset} onChange={event => {
           const value = event.target.value;
           setPreset(value);
-          if (value !== "custom") setDates(analyticsRange(Number(value)));
+          if (value === "ytd") setDates(yearToDate);
+          else if (value !== "custom") setDates(analyticsRange(Number(value)));
         }}>
           <option value="7">Last 7 complete days</option><option value="30">Last 30 complete days</option><option value="90">Last 90 complete days</option>
+          <option value="six-months" disabled>Last 6 months (unavailable)</option>
+          <option value="year" disabled>Last year (unavailable)</option>
+          <option value="ytd" disabled={!yearToDateAvailable}>Year to date{!yearToDateAvailable && " (unavailable)"}</option>
+          <option value="all" disabled>All time (unavailable)</option>
           <option value="custom">Custom date range</option>
         </select></label>
         <label>Start date<input type="date" value={dates.start} min={bounds.start} max={bounds.end} onChange={event => changeDate("start", event.target.value)}/></label>
@@ -197,7 +204,7 @@ export function AnalyticsView() {
     </section>
     <p className={styles.note}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
-      <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
+      <h2>Performance Over {preset === "custom" ? "Custom Date Range" : preset === "ytd" ? "Year to Date" : `Last ${preset} Days`}</h2>
       <ul className={styles.chartLegend} aria-label="Chart legend">
         {chartSeries.map(({ metric, color, max, points }) => <li key={metric}>
           <span aria-hidden="true" style={{ backgroundColor: color }}/>

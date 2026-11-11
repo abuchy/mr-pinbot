@@ -78,3 +78,8 @@
 .chartLegend li > span { width: 22px; height: 3px; }
 
 .chart, .tableScroll { background-color: #fff; }
+
+.accountControls .options select,
+.accountControls .options select option {
+  font-family: var(--font-space), Arial, sans-serif;
+}
