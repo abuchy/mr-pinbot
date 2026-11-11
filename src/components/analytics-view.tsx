@@ -35,7 +35,6 @@ export function AnalyticsView() {
   const [warning, setWarning] = useState("");
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [complete, setComplete] = useState(false);
-  const [refresh, setRefresh] = useState(0);
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<"recent" | "lifetime">("recent");
   const [sort, setSort] = useState<AnalyticsMetric>("IMPRESSION");
@@ -80,7 +79,7 @@ export function AnalyticsView() {
       }
     });
     return () => controller.abort();
-  }, [signedIn, dates.start, dates.end, rangeValid, refresh, request]);
+  }, [signedIn, dates.start, dates.end, rangeValid, request]);
 
   const loadPins = useCallback(async (start?: string) => {
     if (pinRequestActive.current) return;
@@ -101,7 +100,7 @@ export function AnalyticsView() {
         setPins(previous => [...new Map([...previous, ...items].map(pin => [pin.id, pin])).values()]);
         if (result.warning) setWarning(result.warning);
         const next = result.bookmark as string | null;
-        if (next && seen.has(next)) throw new Error("Pinterest repeated a page. Refresh to retry loading your Pins.");
+        if (next && seen.has(next)) throw new Error("Pinterest repeated a page. Retry loading your Pins.");
         if (next) seen.add(next);
         cursor = next || undefined;
         setNextCursor(next || null);
@@ -129,7 +128,7 @@ export function AnalyticsView() {
       pinRun.current++;
       pinRequestActive.current = false;
     };
-  }, [signedIn, refresh, loadPins]);
+  }, [signedIn, loadPins]);
 
   if (!browserDatabase()) return <p className="import-alert">Sign-in setup is required to load Pinterest analytics.</p>;
   if (signedIn === null) return <p role="status">Checking your session…</p>;
@@ -170,7 +169,6 @@ export function AnalyticsView() {
         </select></label>
         <label>Start date<input type="date" value={dates.start} min={bounds.start} max={bounds.end} onChange={event => changeDate("start", event.target.value)}/></label>
         <label>End date<input type="date" value={dates.end} min={bounds.start} max={bounds.end} onChange={event => changeDate("end", event.target.value)}/></label>
-        <button className="button primary" disabled={!rangeValid || summaryBusy || pinsBusy} onClick={() => setRefresh(value => value + 1)}>Refresh</button>
       </div>
     </div>
     <p className={styles.note}>Includes activity on pre-existing Pins.</p>
