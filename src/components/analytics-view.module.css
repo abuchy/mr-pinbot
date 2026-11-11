@@ -15,6 +15,7 @@
   .chartDates time:nth-child(even) { display: none; }
 }
 .pinSection { margin-top: 32px; }
+.showMorePins { margin-bottom: 16px; }
 .search { max-width: 340px; margin-bottom: 24px; }
 .tableScroll { overflow-x: auto; border: 1px solid var(--line); margin-bottom: 20px; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }

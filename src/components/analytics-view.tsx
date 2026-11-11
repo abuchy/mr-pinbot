@@ -8,6 +8,7 @@ import { browserDatabase } from "@/lib/supabase-browser";
 import { analyticsRange, validAnalyticsRange, analyticsMetrics, type AnalyticsMetric, type AnalyticsPin, type MetricValues } from "@/lib/pinterest-analytics";
 import styles from "./analytics-view.module.css";
 
+const initialPinCount = 25;
 const labels: Record<AnalyticsMetric, string> = { IMPRESSION: "Impressions", SAVE: "Saves", PIN_CLICK: "Pin clicks", OUTBOUND_CLICK: "Outbound clicks" };
 const notes: Record<AnalyticsMetric, string> = { IMPRESSION: "Times your Pins were seen", SAVE: "Ideas saved for later", PIN_CLICK: "A closer look at your content", OUTBOUND_CLICK: "Visits to your destination links" };
 const number = (value: number | null | undefined) => value == null ? "—" : value.toLocaleString();
@@ -42,7 +43,7 @@ export function AnalyticsView() {
   const [period, setPeriod] = useState<"recent" | "lifetime">("recent");
   const [sort, setSort] = useState<AnalyticsMetric>("IMPRESSION");
   const [activePointKey, setActivePointKey] = useState<string | null>(null);
-  const [shown, setShown] = useState(50);
+  const [shown, setShown] = useState(initialPinCount);
   const pinRun = useRef(0);
   const pinRequestActive = useRef(false);
 
@@ -233,15 +234,15 @@ export function AnalyticsView() {
       <div className={styles.controls}>
         <div><h2>Your Pinterest Pins</h2><p className={styles.note}>{pins.length.toLocaleString()} Pins loaded{pinsBusy ? " · Loading more…" : complete ? " · All available pages loaded" : " · Loading incomplete"}</p></div>
         <div className={styles.options}>
-          <label>Pin metrics<select value={period} onChange={event => { setPeriod(event.target.value as "recent" | "lifetime"); setShown(50); }}>
+          <label>Pin metrics<select value={period} onChange={event => { setPeriod(event.target.value as "recent" | "lifetime"); setShown(initialPinCount); }}>
             <option value="recent">Last 90 days</option><option value="lifetime">Lifetime, where available</option>
           </select></label>
-          <label>Sort by<select value={sort} onChange={event => { setSort(event.target.value as AnalyticsMetric); setShown(50); }}>
+          <label>Sort by<select value={sort} onChange={event => { setSort(event.target.value as AnalyticsMetric); setShown(initialPinCount); }}>
             {analyticsMetrics.map(metric => <option key={metric} value={metric}>{labels[metric]}</option>)}
           </select></label>
         </div>
       </div>
-      <label className={styles.search}>Search Pins<input type="search" value={query} onChange={event => { setQuery(event.target.value); setShown(50); }} placeholder="Search by title"/></label>
+      <label className={styles.search}>Search Pins<input type="search" value={query} onChange={event => { setQuery(event.target.value); setShown(initialPinCount); }} placeholder="Search by title"/></label>
       {warning && <p className="import-alert" role="status">{warning}</p>}
       {pinsError && <p className="import-alert error" role="alert">{pinsError} <button className="inline-button" disabled={pinsBusy} onClick={() => void loadPins(nextCursor || undefined)}>Retry loading Pins</button></p>}
       {!pins.length && !pinsBusy && complete && <p className={styles.note}>Pinterest returned no Pins for this account.</p>}
@@ -254,7 +255,7 @@ export function AnalyticsView() {
           {analyticsMetrics.map(metric => <td key={metric}>{number(pin[period][metric])}</td>)}
         </tr>)}</tbody>
       </table></div>}
-      {filtered.length > shown && <button className="button quiet" onClick={() => setShown(value => value + 50)}>Show more Pins</button>}
+      {filtered.length > shown && <button className={`button primary ${styles.showMorePins}`} onClick={() => setShown(value => value + 50)}>Show more Pins</button>}
       {pins.length > 0 && filtered.length === 0 && <p className={styles.note}>No matching Pins.</p>}
       <p className={styles.note}>Pin metrics use the period shown above and are independent of the account date range. A dash means Pinterest did not supply that metric. Lifetime coverage varies by Pin age and format. Recent activity may still be processing.</p>
     </section>
