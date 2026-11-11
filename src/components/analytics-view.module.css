@@ -56,7 +56,7 @@
   max-width: 100%;
   padding: 10px 12px;
   pointer-events: none;
-  background: var(--blue);
+  background: var(--paper);
   border: 1px solid var(--line);
   color: var(--ink);
   font-size: 12px;
