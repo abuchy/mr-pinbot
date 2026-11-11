@@ -150,7 +150,6 @@ export function AnalyticsView() {
     return {
       metric,
       color: metric === "IMPRESSION" ? "var(--burgundy)" : "var(--blue)",
-      max,
       points: days.map(day => ({
         key: `${metric}-${day.date}`,
         date: day.date,
@@ -199,9 +198,9 @@ export function AnalyticsView() {
     {summary && <section className={styles.chart}>
       <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
       <ul className={styles.chartLegend} aria-label="Chart legend">
-        {chartSeries.map(({ metric, color, max, points }) => <li key={metric}>
+        {chartSeries.map(({ metric, color, points }) => <li key={metric}>
           <span aria-hidden="true" style={{ backgroundColor: color }}/>
-          {labels[metric]} ({points.length ? `0–${number(max)} scale` : "no daily data"})
+          {labels[metric]}{!points.length && " (no daily data)"}
         </li>)}
       </ul>
       {!chartSeries.some(series => series.points.length) ? <p className={styles.note}>Pinterest has not supplied daily data for this period.</p>
