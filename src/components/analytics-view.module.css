@@ -38,3 +38,21 @@
 @media (forced-colors: active) {
   .options select { appearance: auto; background-image: none; }
 }
+
+.chartPlot { position: relative; }
+.chartTooltip {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  width: 168px;
+  padding: 10px 12px;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+  background: var(--blue);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+}
+.chartTooltip span { color: var(--muted); font-size: 11px; }
+.chartTooltip strong { font-weight: 600; }

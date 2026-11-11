@@ -31,6 +31,7 @@ export function AnalyticsView() {
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<"recent" | "lifetime">("recent");
   const [sort, setSort] = useState<AnalyticsMetric>("IMPRESSION");
+  const [activeDate, setActiveDate] = useState<string | null>(null);
   const [shown, setShown] = useState(50);
   const pinRun = useRef(0);
   const pinRequestActive = useRef(false);
@@ -139,6 +140,7 @@ export function AnalyticsView() {
     x: 4 + 992 * (Date.parse(day.date) - startTime) / duration,
     y: 156 - 152 * day.metrics.IMPRESSION! / max,
   }));
+  const activePoint = points.find(point => point.date === activeDate);
   return <>
     <div className={styles.controls}>
       <span>{summary ? `@${summary.profile.username} · Pinterest account performance` : "Pinterest account performance"}</span>
@@ -161,14 +163,25 @@ export function AnalyticsView() {
     {summary && <section className={styles.chart}>
       <h2>Impressions over time</h2>
       {!points.length ? <p className={styles.note}>Pinterest has not supplied daily impression data for this period.</p>
-        : <svg className={styles.lineChart} viewBox="0 0 1000 160" preserveAspectRatio="none" role="img"
+        : <div className={styles.chartPlot}><svg className={styles.lineChart} viewBox="0 0 1000 160" preserveAspectRatio="none" role="img"
             aria-label={`Daily impressions from ${summary.range.start} to ${summary.range.end}`}>
           <polyline points={points.map(point => `${point.x},${point.y}`).join(" ")} fill="none" stroke="currentColor"
             strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round"/>
-          {points.map(point => <circle key={point.date} cx={point.x} cy={point.y} r="3" fill="currentColor">
-            <title>{point.date}: {number(point.count)} impressions</title>
-          </circle>)}
-        </svg>}
+          {points.map(point => <g key={point.date}>
+            <circle cx={point.x} cy={point.y} r={activeDate === point.date ? 5 : 3} fill="currentColor"/>
+            <circle cx={point.x} cy={point.y} r="10" fill="transparent" tabIndex={0}
+              aria-label={`${point.date}: ${number(point.count)} impressions`}
+              onMouseEnter={() => setActiveDate(point.date)} onMouseLeave={() => setActiveDate(null)}
+              onFocus={() => setActiveDate(point.date)} onBlur={() => setActiveDate(null)}
+              onKeyDown={event => { if (event.key === "Escape") setActiveDate(null); }}/>
+          </g>)}
+        </svg>
+        {activePoint && <div className={styles.chartTooltip} aria-hidden="true"
+          style={{ left: `clamp(84px, ${activePoint.x / 10}%, calc(100% - 84px))`, top: `${activePoint.y / 1.6}%` }}>
+          <span>{activePoint.date}</span>
+          <strong>{number(activePoint.count)} impressions</strong>
+        </div>}
+        </div>}
       <div className={styles.chartDates}><span>{summary.range.start}</span><span>{summary.range.end}</span></div>
     </section>}
     <section className={styles.pinSection}>
