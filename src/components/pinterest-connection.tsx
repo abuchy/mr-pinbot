@@ -19,7 +19,7 @@ const callbackMessages: Record<string, string> = {
   failed: "Pinterest could not finish connecting. Check the app configuration and try again.",
 };
 
-export function PinterestConnection() {
+export function PinterestConnection({ onDisconnect }: { onDisconnect?: () => void } = {}) {
   const [connection, setConnection] = useState<Connection>();
   const [signedOut, setSignedOut] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -47,10 +47,13 @@ export function PinterestConnection() {
       window.location.assign(data.authorizeUrl);
       return;
     }
-    if (method === "DELETE") setNotice("Pinterest disconnected from Mr. Pinbot.");
+    if (method === "DELETE") {
+      setNotice("Pinterest disconnected from Mr. Pinbot.");
+      onDisconnect?.();
+    }
     setSignedOut(false);
     setConnection(data);
-  }, []);
+  }, [onDisconnect]);
 
   const run = useCallback(async (method = "GET") => {
     setBusy(true);

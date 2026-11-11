@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { PinterestConnection } from "./pinterest-connection";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { browserDatabase } from "@/lib/supabase-browser";
@@ -16,6 +17,8 @@ type Summary = {
 };
 
 export function AnalyticsView() {
+  const [disconnected, setDisconnected] = useState(false);
+  const onDisconnect = useCallback(() => setDisconnected(true), []);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [preset, setPreset] = useState("30");
   const [dates, setDates] = useState(() => analyticsRange(30));
@@ -62,7 +65,7 @@ export function AnalyticsView() {
   }, []);
 
   useEffect(() => {
-    if (!signedIn || !rangeValid) return;
+    if (!signedIn || disconnected || !rangeValid) return;
     const controller = new AbortController();
     void Promise.resolve().then(async () => {
       if (controller.signal.aborted) return;
@@ -79,7 +82,7 @@ export function AnalyticsView() {
       }
     });
     return () => controller.abort();
-  }, [signedIn, dates.start, dates.end, rangeValid, request]);
+  }, [signedIn, disconnected, dates.start, dates.end, rangeValid, request]);
 
   const loadPins = useCallback(async (start?: string) => {
     if (pinRequestActive.current) return;
@@ -120,7 +123,7 @@ export function AnalyticsView() {
   }, [request]);
 
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn || disconnected) return;
     void Promise.resolve().then(() => loadPins());
     return () => {
       // This numeric counter deliberately invalidates any in-flight page request.
@@ -128,7 +131,7 @@ export function AnalyticsView() {
       pinRun.current++;
       pinRequestActive.current = false;
     };
-  }, [signedIn, loadPins]);
+  }, [signedIn, disconnected, loadPins]);
 
   if (!browserDatabase()) return <p className="import-alert">Sign-in setup is required to load Pinterest analytics.</p>;
   if (signedIn === null) return <p role="status">Checking your session…</p>;
@@ -157,7 +160,6 @@ export function AnalyticsView() {
   const activePoint = points.find(point => point.date === activeDate);
   return <>
     <div className={styles.accountControls}>
-      <span>{summary ? `@${summary.profile.username} · Pinterest account performance` : "Pinterest account performance"}</span>
       <div className={styles.options}>
         <label>Account range<select value={preset} onChange={event => {
           const value = event.target.value;
@@ -170,7 +172,9 @@ export function AnalyticsView() {
         <label>Start date<input type="date" value={dates.start} min={bounds.start} max={bounds.end} onChange={event => changeDate("start", event.target.value)}/></label>
         <label>End date<input type="date" value={dates.end} min={bounds.start} max={bounds.end} onChange={event => changeDate("end", event.target.value)}/></label>
       </div>
+      <PinterestConnection onDisconnect={onDisconnect}/>
     </div>
+    {disconnected ? <p className={styles.note}>Connect Pinterest to view account analytics.</p> : <>
     {!rangeValid && <p className="validation-error" role="alert">Choose an ordered date range within the last 90 complete UTC days.</p>}
     {rangeValid && summaryError && <p className="import-alert error" role="alert">{summaryError} <Link className="text-link" href="/queue">Pinterest connection</Link></p>}
     <section className="stats-grid analytics-stats" aria-label="Account performance">
@@ -236,5 +240,6 @@ export function AnalyticsView() {
       {pins.length > 0 && filtered.length === 0 && <p className={styles.note}>No matching Pins.</p>}
       <p className={styles.note}>Pin metrics use the period shown above and are independent of the account date range. A dash means Pinterest did not supply that metric. Lifetime coverage varies by Pin age and format. Recent activity may still be processing.</p>
     </section>
+    </>}
   </>;
 }

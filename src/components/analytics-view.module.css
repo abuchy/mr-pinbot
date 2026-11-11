@@ -63,7 +63,9 @@
 .chartTooltip span { color: var(--muted); font-size: 11px; }
 .chartTooltip strong { font-weight: 600; }
 
-.accountControls { display: grid; justify-items: start; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+.accountControls { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-bottom: 20px; }
+.accountControls > .options { flex: 1 1 460px; min-width: 0; }
+.accountControls > :global(.section-panel) { flex: 1 1 350px; min-width: 0; }
 .options input[type="date"] { min-width: 0; height: 43px; border: 1px solid #ccc; padding: 10px 12px; background: white; color: black; font: inherit; }
 .chartDates time:only-child { transform: none; }
 .chartDates time:last-child { display: block; }
