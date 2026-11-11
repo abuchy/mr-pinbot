@@ -59,3 +59,13 @@
 .panel:global(.import-panel) {
   margin-top: 0;
 }
+
+.fields :global(.field-label) > input:not([type="file"]),
+.fields :global(.field-label) > select {
+  height: 43px;
+  min-height: 43px;
+  border: 1px solid #ccc;
+  padding-block: 10px;
+  padding-left: 12px;
+  font-size: 13px;
+}
