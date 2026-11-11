@@ -60,6 +60,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<Record<string, ImportProgress>>({});
   const [message, setMessage] = useState("");
+  const [scheduling, setScheduling] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [imageBusy,setImageBusy]=useState(false);
   const [descriptionBusy,setDescriptionBusy]=useState(false);
@@ -223,6 +224,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
 
   async function changeSchedule(action: "schedule" | "unschedule" | "retry", ids: string[], destination?: string) {
     setBusy(true);
+    if (action === "schedule") setScheduling(true);
     setError("");
     setMessage("");
     try {
@@ -230,7 +232,8 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         method: "POST", body: JSON.stringify({ action, ids, boardId: destination }),
       });
       await load();
-      setMessage(result.message);
+      if (action !== "schedule") setMessage(result.message);
+      else if (/skipped[.]?\s+\S/.test(result.message)) setError(result.message);
       setSelection([]);
       setBoards(undefined);
       setBoardId("");
@@ -238,6 +241,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not update the schedule.");
     } finally {
+      setScheduling(false);
       setBusy(false);
     }
   }
@@ -341,7 +345,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
           }
           catch (e) { setError(e instanceof Error ? e.message : "Could not load boards."); }
           finally { setBusy(false); }
-        }}>Schedule Pins</button> : <button className="button primary" disabled={busy || !selected.length} onClick={() => {
+        }}>{scheduling ? "Scheduling pins..." : "Schedule Pins"}</button> : <button className="button primary" disabled={busy || !selected.length} onClick={() => {
           if (window.confirm(`Unschedule ${selected.length} selected Pins?`)) void changeSchedule("unschedule", selected);
         }}>Unschedule Pins</button>}
       </div>}
@@ -358,7 +362,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
             catch (e) { setError(e instanceof Error ? e.message : "Could not load boards."); }
             finally { setBusy(false); }
           }}>Load more boards</button>}
-          <button className="button primary" disabled={busy || !selected.length || (!trial && !boardId)} onClick={() => void changeSchedule("schedule", selected, boardId)}>Confirm schedule</button>
+          <button className="button primary" disabled={busy || !selected.length || (!trial && !boardId)} onClick={() => void changeSchedule("schedule", selected, boardId)}>{scheduling ? "Scheduling pins..." : "Confirm schedule"}</button>
           <button className="button quiet" disabled={busy} onClick={() => { setBoards(undefined); setBoardId(""); }}>Cancel</button>
         </div>
       </section>}
