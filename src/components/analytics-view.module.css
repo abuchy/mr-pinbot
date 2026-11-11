@@ -83,3 +83,26 @@
 .accountControls .options select option {
   font-family: var(--font-space), Arial, sans-serif;
 }
+
+@supports (appearance: base-select) and selector(::picker(select)) {
+  @media (forced-colors: none) {
+    .accountControls .options select,
+    .accountControls .options select::picker(select) {
+      appearance: base-select;
+    }
+
+    .accountControls .options select::picker(select) {
+      font: inherit;
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+
+    .accountControls .options select::picker-icon {
+      display: none;
+    }
+
+    .accountControls .options select option {
+      padding: 8px 12px;
+    }
+  }
+}
