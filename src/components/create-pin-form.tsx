@@ -86,7 +86,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
         <label className="field-label">Pin Title
           <input required maxLength={100} value={title} onChange={event => setTitle(event.target.value)}/>
         </label>
-        <label className="field-label">ShopMy Affiliate Link
+        <label className="field-label">Affiliate Link
           <input type="url" required maxLength={2048} value={affiliate} onChange={event => setAffiliate(event.target.value)}/>
         </label>
         <div className={styles.images}>

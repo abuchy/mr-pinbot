@@ -126,7 +126,7 @@ export function CaptureForm() {
       <label className="field-label">Pin Title
         <input required maxLength={100} value={title} disabled={busy} onChange={event => setTitle(event.target.value)}/>
       </label>
-      <label className="field-label">ShopMy Affiliate Link
+      <label className="field-label">Affiliate Link
         <input type="url" required maxLength={2048} value={affiliate} disabled={busy}
           onChange={event => setAffiliate(event.target.value)}/>
       </label>
