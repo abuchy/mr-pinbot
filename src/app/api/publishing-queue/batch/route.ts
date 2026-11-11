@@ -88,7 +88,10 @@ export async function POST(request: NextRequest) {
         p_owner: auth.user.id, p_versions: versions, p_account: profile.username,
         p_board: board.id, p_board_name: board.name,
       });
-      if (result.error) return privateJson({ error: `${scheduled} scheduled. Scheduling was interrupted. Refresh and retry the remaining Drafts.` }, 503);
+      if (result.error) {
+        console.warn("[pinbot:schedule]", { operation: "schedule_library_pins", code: result.error.code, scheduled });
+        return privateJson({ error: `${scheduled} scheduled. Scheduling was interrupted. Refresh and retry the remaining Drafts.` }, 503);
+      }
       scheduled += result.data;
     }
     return privateJson({ message: `${scheduled} scheduled · ${ids.length - scheduled} skipped. ${skipped.join(" ")}`.trim() });
