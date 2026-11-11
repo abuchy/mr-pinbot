@@ -19,5 +19,12 @@
   background: #fafafa;
 }
 .preview img { object-fit: contain; }
-.capture input { min-width: 0; }
+.capture input,
+.capture :global(.pin-board-select) {
+  height: 43px;
+}
+.capture input {
+  min-width: 0;
+  padding-block: 10px;
+}
 .capture :global(.form-actions) { margin-top: 16px; }
