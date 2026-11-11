@@ -160,6 +160,7 @@ export function AnalyticsView() {
   const activePoint = points.find(point => point.date === activeDate);
   return <>
     <div className={styles.accountControls}>
+      <PinterestConnection onDisconnect={onDisconnect}/>
       <div className={styles.options}>
         <label>Account range<select value={preset} onChange={event => {
           const value = event.target.value;
@@ -172,7 +173,6 @@ export function AnalyticsView() {
         <label>Start date<input type="date" value={dates.start} min={bounds.start} max={bounds.end} onChange={event => changeDate("start", event.target.value)}/></label>
         <label>End date<input type="date" value={dates.end} min={bounds.start} max={bounds.end} onChange={event => changeDate("end", event.target.value)}/></label>
       </div>
-      <PinterestConnection onDisconnect={onDisconnect}/>
     </div>
     {disconnected ? <p className={styles.note}>Connect Pinterest to view account analytics.</p> : <>
     {!rangeValid && <p className="validation-error" role="alert">Choose an ordered date range within the last 90 complete UTC days.</p>}
