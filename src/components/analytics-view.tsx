@@ -149,7 +149,7 @@ export function AnalyticsView() {
     const max = Math.max(1, ...days.map(day => day.metrics[metric]!));
     return {
       metric,
-      color: metric === "IMPRESSION" ? "var(--burgundy)" : "var(--blue)",
+      color: metric === "IMPRESSION" ? "var(--burgundy)" : "var(--yellow)",
       points: days.map(day => ({
         key: `${metric}-${day.date}`,
         date: day.date,
