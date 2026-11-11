@@ -79,7 +79,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
     }
   }
 
-  return <section className="import-panel">
+  return <section className={`import-panel ${styles.panel}`}>
     <h2>Let&apos;s Pin it.</h2>
     <form onSubmit={create} className={styles.form}>
       <fieldset disabled={disabled || busy} className={styles.fields}>

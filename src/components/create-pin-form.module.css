@@ -55,3 +55,7 @@
 .form {
   margin-top: 24px;
 }
+
+.panel:global(.import-panel) {
+  margin-top: 41px;
+}
