@@ -118,7 +118,7 @@ export function CaptureForm() {
           onError={() => setPreviewFailed(true)}/>
       </div>}
       {!imageUrl && <p className="field-help">
-        Copy your ShopMy link, image URL, and product title while this panel is open.
+        Copy your affiliate link, image URL, and product title while this panel is open.
       </p>}
       <label className="field-label">Image URL
         <input type="text" readOnly value={copiedImage || capture?.source || ""}/>
