@@ -171,7 +171,6 @@ export function AnalyticsView() {
         <label>End date<input type="date" value={dates.end} min={bounds.start} max={bounds.end} onChange={event => changeDate("end", event.target.value)}/></label>
       </div>
     </div>
-    <p className={styles.note}>Includes activity on pre-existing Pins.</p>
     {!rangeValid && <p className="validation-error" role="alert">Choose an ordered date range within the last 90 complete UTC days.</p>}
     {rangeValid && summaryError && <p className="import-alert error" role="alert">{summaryError} <Link className="text-link" href="/queue">Pinterest connection</Link></p>}
     <section className="stats-grid analytics-stats" aria-label="Account performance">
@@ -181,6 +180,7 @@ export function AnalyticsView() {
         <p>{notes[metric]}</p>
       </div>)}
     </section>
+    <p className={styles.note}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
       <h2>Impressions over time</h2>
       {!points.length ? <p className={styles.note}>Pinterest has not supplied daily impression data for this period.</p>
