@@ -97,7 +97,7 @@ export function PinterestConnection({ onDisconnect }: { onDisconnect?: () => voi
     {signedOut ? <Link className="text-link" href="/library">Sign in to connect Pinterest</Link>
       : connection?.status === "connected" ? <div className="pinterest-account">
         <p><span className="font-semibold">@{connection.profile?.username}</span><br/>Pinterest Business Account</p>
-        <button className="button quiet" disabled={busy} onClick={() => {
+        <button className="button primary" disabled={busy} onClick={() => {
           if (window.confirm("Disconnect Pinterest from Mr. Pinbot?")) void run("DELETE");
         }}>Disconnect</button>
       </div> : <button className="button primary" disabled={busy || connection?.status === "setup_required"} onClick={() => {
