@@ -73,7 +73,7 @@
 .chartDates time:only-child { transform: none; }
 .chartDates time:last-child { display: block; }
 
-.chartLegend { display: flex; flex-wrap: wrap; gap: 8px 20px; list-style: none; margin: 0 0 16px; padding: 0; font-size: 12px; }
+.chartLegend { display: flex; flex-wrap: wrap; gap: 8px 20px; list-style: none; margin: 0 0 16px; padding: 0; font-size: 14px; }
 .chartLegend li { display: flex; align-items: center; gap: 8px; }
 .chartLegend li > span { width: 22px; height: 3px; }
 
