@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson } from "@/lib/api-auth";
 import { connectionTable, pinterestAccountAnalytics, pinterestAccountPins, pinterestConfig, PinterestError, pinterestProfile, refreshAccess } from "@/lib/pinterest";
-import { analyticsRange, metricValues, normalizeAnalyticsPin } from "@/lib/pinterest-analytics";
+import { analyticsRange, metricValues, normalizeAnalyticsPin, validAnalyticsRange } from "@/lib/pinterest-analytics";
 
 export const maxDuration = 60;
 
@@ -15,6 +15,11 @@ export async function GET(request: NextRequest) {
   const bookmark = request.nextUrl.searchParams.get("bookmark") || undefined;
   if (!["summary", "pins"].includes(mode) || ![7, 30, 90].includes(days) || (bookmark && bookmark.length > 2048)) {
     return privateJson({ error: "Choose a valid analytics range." }, 400);
+  }
+  const start = request.nextUrl.searchParams.get("start");
+  const end = request.nextUrl.searchParams.get("end");
+  if ((start !== null || end !== null) && !validAnalyticsRange(start ?? "", end ?? "")) {
+    return privateJson({ error: "Choose an ordered date range within the last 90 complete UTC days." }, 400);
   }
   const connection = await connectionTable(config)
     .select("owner_id,revision,token_ciphertext,access_expires_at,reconnect_required")
@@ -39,7 +44,7 @@ export async function GET(request: NextRequest) {
         checkedAt: new Date().toISOString(),
       });
     }
-    const range = analyticsRange(days);
+    const range = start && end ? { start, end } : analyticsRange(days);
     const [profile, report] = await Promise.all([
       pinterestProfile(token), pinterestAccountAnalytics(token, range.start, range.end),
     ]);

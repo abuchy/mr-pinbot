@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { browserDatabase } from "@/lib/supabase-browser";
-import { analyticsMetrics, type AnalyticsMetric, type AnalyticsPin, type MetricValues } from "@/lib/pinterest-analytics";
+import { analyticsRange, validAnalyticsRange, analyticsMetrics, type AnalyticsMetric, type AnalyticsPin, type MetricValues } from "@/lib/pinterest-analytics";
 import styles from "./analytics-view.module.css";
 
 const labels: Record<AnalyticsMetric, string> = { IMPRESSION: "Impressions", SAVE: "Saves", PIN_CLICK: "Pin clicks", OUTBOUND_CLICK: "Outbound clicks" };
@@ -17,7 +17,15 @@ type Summary = {
 
 export function AnalyticsView() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [days, setDays] = useState(30);
+  const [preset, setPreset] = useState("30");
+  const [dates, setDates] = useState(() => analyticsRange(30));
+  const bounds = analyticsRange(90);
+  const rangeValid = validAnalyticsRange(dates.start, dates.end);
+  function changeDate(field: "start" | "end", value: string) {
+    setPreset("custom");
+    setDates(previous => ({ ...previous, [field]: value }));
+    setSummary(undefined);
+  }
   const [summary, setSummary] = useState<Summary>();
   const [summaryBusy, setSummaryBusy] = useState(false);
   const [summaryError, setSummaryError] = useState("");
@@ -55,7 +63,7 @@ export function AnalyticsView() {
   }, []);
 
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn || !rangeValid) return;
     const controller = new AbortController();
     void Promise.resolve().then(async () => {
       if (controller.signal.aborted) return;
@@ -63,7 +71,7 @@ export function AnalyticsView() {
       setSummaryError("");
       setSummary(undefined);
       try {
-        const result = await request(new URLSearchParams({ days: String(days) }), controller.signal);
+        const result = await request(new URLSearchParams({ start: dates.start, end: dates.end }), controller.signal);
         if (!controller.signal.aborted) setSummary(result);
       } catch (failure) {
         if (!controller.signal.aborted) setSummaryError(failure instanceof Error ? failure.message : "Could not load account analytics.");
@@ -72,7 +80,7 @@ export function AnalyticsView() {
       }
     });
     return () => controller.abort();
-  }, [signedIn, days, refresh, request]);
+  }, [signedIn, dates.start, dates.end, rangeValid, refresh, request]);
 
   const loadPins = useCallback(async (start?: string) => {
     if (pinRequestActive.current) return;
@@ -140,28 +148,38 @@ export function AnalyticsView() {
     x: 4 + 992 * (Date.parse(day.date) - startTime) / duration,
     y: 156 - 152 * day.metrics.IMPRESSION! / max,
   }));
-  const dateMarkers = summary ? Array.from({ length: 5 }, (_, index) => {
-    const dayOffset = Math.round(duration / 86_400_000 * index / 4);
+  const daySpan = summary ? (Date.parse(summary.range.end) - startTime) / 86_400_000 : 0;
+  const markerCount = Math.min(5, daySpan + 1);
+  const dateMarkers = summary ? Array.from({ length: markerCount }, (_, index) => {
+    const dayOffset = Math.round(daySpan * index / Math.max(1, markerCount - 1));
     const date = new Date(startTime + dayOffset * 86_400_000);
     return { date: date.toISOString().slice(0, 10), position: dayOffset * 86_400_000 / duration * 100 };
   }) : [];
   const activePoint = points.find(point => point.date === activeDate);
   return <>
-    <div className={styles.controls}>
+    <div className={styles.accountControls}>
       <span>{summary ? `@${summary.profile.username} · Pinterest account performance` : "Pinterest account performance"}</span>
       <div className={styles.options}>
-        <label>Account range<select value={days} onChange={event => setDays(Number(event.target.value))}>
-          <option value={7}>Last 7 complete days</option><option value={30}>Last 30 complete days</option><option value={90}>Last 90 complete days</option>
+        <label>Account range<select value={preset} onChange={event => {
+          const value = event.target.value;
+          setPreset(value);
+          if (value !== "custom") setDates(analyticsRange(Number(value)));
+        }}>
+          <option value="7">Last 7 complete days</option><option value="30">Last 30 complete days</option><option value="90">Last 90 complete days</option>
+          <option value="custom">Custom date range</option>
         </select></label>
-        <button className="button primary" disabled={summaryBusy || pinsBusy} onClick={() => setRefresh(value => value + 1)}>Refresh</button>
+        <label>Start date<input type="date" value={dates.start} min={bounds.start} max={bounds.end} onChange={event => changeDate("start", event.target.value)}/></label>
+        <label>End date<input type="date" value={dates.end} min={bounds.start} max={bounds.end} onChange={event => changeDate("end", event.target.value)}/></label>
+        <button className="button primary" disabled={!rangeValid || summaryBusy || pinsBusy} onClick={() => setRefresh(value => value + 1)}>Refresh</button>
       </div>
     </div>
-    {summaryError && <p className="import-alert error" role="alert">{summaryError} <Link className="text-link" href="/queue">Pinterest connection</Link></p>}
-    {summary && <p className={styles.note}>{summary.range.start} – {summary.range.end} · UTC · Includes activity on pre-existing Pins.</p>}
+    <p className={styles.note}>Includes activity on pre-existing Pins.</p>
+    {!rangeValid && <p className="validation-error" role="alert">Choose an ordered date range within the last 90 complete UTC days.</p>}
+    {rangeValid && summaryError && <p className="import-alert error" role="alert">{summaryError} <Link className="text-link" href="/queue">Pinterest connection</Link></p>}
     <section className="stats-grid analytics-stats" aria-label="Account performance">
       {analyticsMetrics.map(metric => <div className="stat" key={metric}>
         <div className="stat-label">{labels[metric]}</div>
-        <div className="stat-value">{summaryBusy ? "…" : number(summary?.metrics[metric])}</div>
+        <div className="stat-value">{summaryBusy && rangeValid ? "…" : number(summary?.metrics[metric])}</div>
         <p>{notes[metric]}</p>
       </div>)}
     </section>

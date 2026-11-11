@@ -22,6 +22,13 @@ export function analyticsRange(days: number, now = new Date()) {
   };
 }
 
+export function validAnalyticsRange(start: string, end: string, now = new Date()) {
+  const bounds = analyticsRange(90, now);
+  const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+  return isDate(start) && isDate(end) && start >= bounds.start && end <= bounds.end && start <= end;
+}
+
 export function normalizeAnalyticsPin(input: {
   id: string; title?: string | null; created_at?: string | null;
   media?: { images?: Record<string, { url?: string }> };

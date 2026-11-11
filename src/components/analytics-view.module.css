@@ -62,3 +62,8 @@
 }
 .chartTooltip span { color: var(--muted); font-size: 11px; }
 .chartTooltip strong { font-weight: 600; }
+
+.accountControls { display: grid; justify-items: start; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+.options input[type="date"] { min-width: 0; height: 43px; border: 1px solid #ccc; padding: 10px 12px; background: white; color: black; font: inherit; }
+.chartDates time:only-child { transform: none; }
+.chartDates time:last-child { display: block; }
