@@ -41,7 +41,7 @@ export function AnalyticsView() {
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<"recent" | "lifetime">("recent");
   const [sort, setSort] = useState<AnalyticsMetric>("IMPRESSION");
-  const [activeDate, setActiveDate] = useState<string | null>(null);
+  const [activePointKey, setActivePointKey] = useState<string | null>(null);
   const [shown, setShown] = useState(50);
   const pinRun = useRef(0);
   const pinRequestActive = useRef(false);
@@ -139,17 +139,27 @@ export function AnalyticsView() {
 
   const filtered = pins.filter(pin => pin.title.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => (b[period][sort] ?? -1) - (a[period][sort] ?? -1));
-  const daysWithData = (summary?.daily ?? [])
-    .filter(day => day.status !== "PROCESSING" && day.metrics.IMPRESSION !== null)
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const max = Math.max(1, ...daysWithData.map(day => day.metrics.IMPRESSION!));
   const startTime = Date.parse(summary?.range.start ?? "");
   const duration = Math.max(86_400_000, Date.parse(summary?.range.end ?? "") - startTime);
-  const points = daysWithData.map(day => ({
-    date: day.date, count: day.metrics.IMPRESSION!,
-    x: 4 + 992 * (Date.parse(day.date) - startTime) / duration,
-    y: 156 - 152 * day.metrics.IMPRESSION! / max,
-  }));
+  const chartSeries = (["IMPRESSION", "OUTBOUND_CLICK"] as const).map(metric => {
+    const days = (summary?.daily ?? [])
+      .filter(day => day.status !== "PROCESSING" && day.metrics[metric] !== null)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const max = Math.max(1, ...days.map(day => day.metrics[metric]!));
+    return {
+      metric,
+      color: metric === "IMPRESSION" ? "var(--burgundy)" : "var(--blue)",
+      max,
+      points: days.map(day => ({
+        key: `${metric}-${day.date}`,
+        date: day.date,
+        count: day.metrics[metric]!,
+        label: labels[metric].toLowerCase(),
+        x: 4 + 992 * (Date.parse(day.date) - startTime) / duration,
+        y: 156 - 152 * day.metrics[metric]! / max,
+      })),
+    };
+  });
   const daySpan = summary ? (Date.parse(summary.range.end) - startTime) / 86_400_000 : 0;
   const markerCount = Math.min(5, daySpan + 1);
   const dateMarkers = summary ? Array.from({ length: markerCount }, (_, index) => {
@@ -157,7 +167,7 @@ export function AnalyticsView() {
     const date = new Date(startTime + dayOffset * 86_400_000);
     return { date: date.toISOString().slice(0, 10), position: dayOffset * 86_400_000 / duration * 100 };
   }) : [];
-  const activePoint = points.find(point => point.date === activeDate);
+  const activePoint = chartSeries.flatMap(series => series.points).find(point => point.key === activePointKey);
   return <>
     <div className={styles.accountControls}>
       <PinterestConnection onDisconnect={onDisconnect}/>
@@ -187,24 +197,32 @@ export function AnalyticsView() {
     <p className={styles.note}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
       <h2>Impressions over time</h2>
-      {!points.length ? <p className={styles.note}>Pinterest has not supplied daily impression data for this period.</p>
+      <ul className={styles.chartLegend} aria-label="Chart legend">
+        {chartSeries.map(({ metric, color, max, points }) => <li key={metric}>
+          <span aria-hidden="true" style={{ backgroundColor: color }}/>
+          {labels[metric]} ({points.length ? `0–${number(max)} scale` : "no daily data"})
+        </li>)}
+      </ul>
+      {!chartSeries.some(series => series.points.length) ? <p className={styles.note}>Pinterest has not supplied daily data for this period.</p>
         : <div className={styles.chartPlot}><svg className={styles.lineChart} viewBox="0 0 1000 160" preserveAspectRatio="none" role="img"
-            aria-label={`Daily impressions from ${summary.range.start} to ${summary.range.end}`}>
+            aria-label={`Daily impressions and outbound clicks from ${summary.range.start} to ${summary.range.end}`}>
+          {chartSeries.map(({ metric, color, points }) => <g key={metric} style={{ color }}>
           <polyline points={points.map(point => `${point.x},${point.y}`).join(" ")} fill="none" stroke="currentColor"
             strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round"/>
           {points.map(point => <g key={point.date}>
-            <circle cx={point.x} cy={point.y} r={activeDate === point.date ? 5 : 3} fill="currentColor"/>
+            <circle cx={point.x} cy={point.y} r={activePointKey === point.key ? 5 : 3} fill="currentColor"/>
             <circle cx={point.x} cy={point.y} r="10" fill="transparent" tabIndex={0}
-              aria-label={`${point.date}: ${number(point.count)} impressions`}
-              onMouseEnter={() => setActiveDate(point.date)} onMouseLeave={() => setActiveDate(null)}
-              onFocus={() => setActiveDate(point.date)} onBlur={() => setActiveDate(null)}
-              onKeyDown={event => { if (event.key === "Escape") setActiveDate(null); }}/>
+              aria-label={`${point.date}: ${number(point.count)} ${point.label}`}
+              onMouseEnter={() => setActivePointKey(point.key)} onMouseLeave={() => setActivePointKey(null)}
+              onFocus={() => setActivePointKey(point.key)} onBlur={() => setActivePointKey(null)}
+              onKeyDown={event => { if (event.key === "Escape") setActivePointKey(null); }}/>
+          </g>)}
           </g>)}
         </svg>
         {activePoint && <div className={styles.chartTooltip} aria-hidden="true"
           style={{ left: `clamp(84px, ${activePoint.x / 10}%, calc(100% - 84px))`, top: `${activePoint.y / 1.6}%` }}>
           <span>{activePoint.date}</span>
-          <strong>{number(activePoint.count)} impressions</strong>
+          <strong>{number(activePoint.count)} {activePoint.label}</strong>
         </div>}
         </div>}
       <div className={styles.chartDates}>
