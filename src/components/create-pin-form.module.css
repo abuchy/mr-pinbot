@@ -10,8 +10,10 @@
 }
 .uploadPicker {
   position: relative;
-  display: block;
-  padding: 16px;
+  display: flex;
+  align-items: center;
+  height: 43px;
+  padding: 10px 12px;
   border: 1px dashed #999;
   overflow-wrap: anywhere;
 }
