@@ -7,7 +7,13 @@
 .chart { border: 1px solid var(--line); padding: 24px; margin-bottom: 32px; }
 .chart h2 { font-size: 20px; margin-bottom: 24px; }
 .lineChart { display: block; width: 100%; height: 160px; color: var(--burgundy); border-bottom: 1px solid var(--line); }
-.chartDates { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 10px; }
+.chartDates { position: relative; height: 18px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+.chartDates time { position: absolute; white-space: nowrap; transform: translateX(-50%); }
+.chartDates time:first-child { transform: none; }
+.chartDates time:last-child { transform: translateX(-100%); }
+@media (max-width: 600px) {
+  .chartDates time:nth-child(even) { display: none; }
+}
 .pinSection { margin-top: 32px; }
 .search { max-width: 340px; margin-bottom: 24px; }
 .tableScroll { overflow-x: auto; border: 1px solid var(--line); margin-bottom: 20px; }

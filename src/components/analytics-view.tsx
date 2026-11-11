@@ -140,6 +140,11 @@ export function AnalyticsView() {
     x: 4 + 992 * (Date.parse(day.date) - startTime) / duration,
     y: 156 - 152 * day.metrics.IMPRESSION! / max,
   }));
+  const dateMarkers = summary ? Array.from({ length: 5 }, (_, index) => {
+    const dayOffset = Math.round(duration / 86_400_000 * index / 4);
+    const date = new Date(startTime + dayOffset * 86_400_000);
+    return { date: date.toISOString().slice(0, 10), position: dayOffset * 86_400_000 / duration * 100 };
+  }) : [];
   const activePoint = points.find(point => point.date === activeDate);
   return <>
     <div className={styles.controls}>
@@ -182,7 +187,9 @@ export function AnalyticsView() {
           <strong>{number(activePoint.count)} impressions</strong>
         </div>}
         </div>}
-      <div className={styles.chartDates}><span>{summary.range.start}</span><span>{summary.range.end}</span></div>
+      <div className={styles.chartDates}>
+        {dateMarkers.map(marker => <time key={marker.date} dateTime={marker.date} style={{ left: `${marker.position}%` }}>{marker.date}</time>)}
+      </div>
     </section>}
     <section className={styles.pinSection}>
       <div className={styles.controls}>
