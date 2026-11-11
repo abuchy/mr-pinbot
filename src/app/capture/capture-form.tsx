@@ -118,17 +118,17 @@ export function CaptureForm() {
           onError={() => setPreviewFailed(true)}/>
       </div>}
       {!imageUrl && <p className="field-help">
-        Copy your affiliate link, image URL, and product title while this panel is open.
+        Copy your affiliate link, product title, and image URL while this panel is open.
       </p>}
-      <label className="field-label">Image URL
-        <input type="text" readOnly value={copiedImage || capture?.source || ""}/>
+      <label className="field-label">Affiliate Link
+        <input type="url" required maxLength={2048} value={affiliate} disabled={busy}
+          onChange={event => setAffiliate(event.target.value)}/>
       </label>
       <label className="field-label">Pin Title
         <input required maxLength={100} value={title} disabled={busy} onChange={event => setTitle(event.target.value)}/>
       </label>
-      <label className="field-label">Affiliate Link
-        <input type="url" required maxLength={2048} value={affiliate} disabled={busy}
-          onChange={event => setAffiliate(event.target.value)}/>
+      <label className="field-label">Image URL
+        <input type="text" readOnly value={copiedImage || capture?.source || ""}/>
       </label>
       <PinBoardSelect value={boardId} onChange={setBoardId} disabled={busy} enabled={signedIn}/>
       {error && <p className="validation-error" role="alert">{error}</p>}
