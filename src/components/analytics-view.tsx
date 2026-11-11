@@ -177,7 +177,7 @@ export function AnalyticsView() {
     {disconnected ? <p className={styles.note}>Connect Pinterest to view account analytics.</p> : <>
     {!rangeValid && <p className="validation-error" role="alert">Choose an ordered date range within the last 90 complete UTC days.</p>}
     {rangeValid && summaryError && <p className="import-alert error" role="alert">{summaryError} <Link className="text-link" href="/queue">Pinterest connection</Link></p>}
-    <section className="stats-grid analytics-stats" aria-label="Account performance">
+    <section className={`stats-grid analytics-stats ${styles.stats}`} aria-label="Account performance">
       {analyticsMetrics.map(metric => <div className="stat" key={metric}>
         <div className="stat-label">{labels[metric]}</div>
         <div className="stat-value">{summaryBusy && rangeValid ? "…" : number(summary?.metrics[metric])}</div>

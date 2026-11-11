@@ -64,6 +64,10 @@
 .chartTooltip strong { font-weight: 600; }
 
 .accountControls { display: grid; gap: 24px; margin-bottom: 20px; }
+.accountControls .options label { font-size: 16px; }
+.accountControls .options :is(select, input[type="date"]) { font-size: 12px; }
+.stats:global(.analytics-stats) { margin-bottom: 0; }
+.stats :global(.stat-label) { font-size: 16px; }
 .options input[type="date"] { min-width: 0; height: 43px; border: 1px solid #ccc; padding: 10px 12px; background: white; color: black; font: inherit; }
 .chartDates time:only-child { transform: none; }
 .chartDates time:last-child { display: block; }
