@@ -60,6 +60,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<Record<string, ImportProgress>>({});
   const [message, setMessage] = useState("");
+  const [publishingId, setPublishingId] = useState<string | null>(null);
   const [imageBusy,setImageBusy]=useState(false);
   const [descriptionBusy,setDescriptionBusy]=useState(false);
   const [editing, setEditing] = useState<ContentItem | null>(null);
@@ -241,6 +242,32 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
     }
   }
 
+  async function publishNow(item: ContentItem) {
+    if (busy) return;
+    setBusy(true);
+    setPublishingId(item.id);
+    setError("");
+    setMessage("");
+    let outcomeError = "";
+    let outcomeMessage = "";
+    try {
+      const result = await request("/api/publishing-queue/publish-now", {
+        method: "POST", body: JSON.stringify({ id: item.id, version: item.updated_at }),
+      });
+      if (result.status === "published") outcomeMessage = "Pin published.";
+      else outcomeError = result.error || "Publishing needs attention. Check the Pin's status before trying again.";
+    } catch (failure) {
+      outcomeError = failure instanceof Error ? failure.message : "Could not confirm publishing. Check Pinterest and refresh the queue before trying again.";
+    } finally {
+      await load();
+      if (outcomeError) setError(outcomeError);
+      setMessage(outcomeMessage);
+      try { window.localStorage.setItem(syncKey, crypto.randomUUID()); } catch { /* The queue already refreshed. */ }
+      setPublishingId(null);
+      setBusy(false);
+    }
+  }
+
   async function savePreferences(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -354,7 +381,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
           <div className="pin-card-actions">
           {job && <div className="pin-publication-details">{publicationDetails(job)}</div>}
           <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditorBoard(item.pinterest_board_id || ""); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
-          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</div></>}</div></article>;
+          {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<div className={queue ? "pin-card-links" : undefined}><button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>{queue && <button className="inline-button publish-now-link" disabled={busy} onClick={() => void publishNow(item)}>{publishingId === item.id ? "Publishing…" : "Publish now"}</button>}</div>}</div></>}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
         <PinThumbnail url={job.image_url} title={job.title}/>
         <div className="content-card-body"><h3>{job.title}</h3><p>Board · {job.board_name}</p>

@@ -184,3 +184,13 @@
 
 
 .pin-publication-details { margin-bottom: 24px; }
+
+.pin-card-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+}
+.pin-card-links .delete-link { margin-top: 0; }
+.publish-now-link { margin-left: auto; }

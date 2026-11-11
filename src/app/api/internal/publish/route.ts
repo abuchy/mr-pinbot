@@ -2,9 +2,10 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
 import { privateJson } from "@/lib/api-auth";
 import {
-  connectionTable, createPinterestPin, pinterestBoard, pinterestConfig, pinterestDatabase,
-  PinterestError, pinterestProfile, refreshAccess,
+  connectionTable, pinterestConfig, pinterestDatabase, refreshAccess,
 } from "@/lib/pinterest";
+
+import { publishClaimedPin } from "@/lib/publish-pin";
 
 export const maxDuration = 60;
 
@@ -46,37 +47,6 @@ export async function POST(request: NextRequest) {
   if (claimError) return privateJson({ error: "Could not claim a due Pin." }, 503);
   if (!pin) return privateJson({ status: "idle" });
 
-  const finish = async (status: string, fields: Record<string, string | null>) => {
-    const result = await database.from("pin_approvals").update({ ...fields, publish_status: status })
-      .eq("owner_id", owner).eq("id", pin.id).eq("publish_status", "publishing").select("id").maybeSingle();
-    if (result.error || !result.data) return privateJson({ error: "Publishing outcome could not be saved." }, 503);
-    return privateJson({ status });
-  };
-
-  let sent = false;
-  let pinterestId: string;
-  try {
-    const token = sandboxToken ?? await refreshAccess(config, connection);
-    const boardId = sandboxBoard ?? pin.board_id;
-    const [profile, board] = await Promise.all([pinterestProfile(token, trial), pinterestBoard(token, boardId, trial)]);
-    if (profile.username !== pin.pinterest_account || board.id !== boardId || board.privacy !== "PUBLIC") {
-      return await finish("failed", { publish_error: "The approved Pinterest account or board is no longer available." });
-    }
-    sent = true;
-    pinterestId = await createPinterestPin(token, {
-      board_id: boardId, title: pin.title, description: pin.description,
-      image_url: pin.image_url, destination_url: pin.destination_url,
-    }, trial);
-  } catch (error) {
-    const rejected = error instanceof PinterestError && [400, 401, 403, 404, 422, 429].includes(error.status);
-    const uncertain = sent && !rejected;
-    const message = uncertain ? "Check Pinterest for this Pin before taking further action."
-      : error instanceof PinterestError ? error.message : "Publishing stopped before sending the Pin.";
-    const upstream = error instanceof PinterestError ? error.upstream : undefined;
-    const diagnostics = upstream
-      ? ` (${upstream.operation}, HTTP ${upstream.httpStatus}${upstream.code === undefined ? "" : `, Pinterest code ${upstream.code}`})`
-      : "";
-    return finish(uncertain ? "needs_verification" : "failed", { publish_error: message + diagnostics });
-  }
-  return finish("published", { pinterest_pin_id: pinterestId, published_at: new Date().toISOString(), publish_error: null });
+  return publishClaimedPin(database, owner, pin,
+    async () => sandboxToken ?? await refreshAccess(config, connection), trial, sandboxBoard);
 }
