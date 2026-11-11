@@ -281,7 +281,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         {finished + attention} of {statuses.length} processed · {finished} completed · {processing} remaining · {attention} need attention
       </p>}
       {queue && preferences && <section className="section-panel queue-preferences-panel">
-        <h2>Publishing cadence</h2>
+        <h2>Publishing Cadence</h2>
         <form className="publishing-preferences" onSubmit={savePreferences}>
           <label className="field-label">Pins per day<input type="number" min={1} max={publishingDailyLimit} required value={Number.isNaN(preferences.daily) ? "" : preferences.daily} onChange={event => setPreferences({ ...preferences, daily: event.target.valueAsNumber })}/></label>
           <label className="field-label">Time zone<select value={preferences.zone} onChange={event => setPreferences({ ...preferences, zone: event.target.value })}>
