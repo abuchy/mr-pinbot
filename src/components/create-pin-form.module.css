@@ -71,3 +71,13 @@
   padding-left: 12px;
   font-size: 13px;
 }
+
+.uploadPicker > span,
+.fields :global(.pin-board-select[data-placeholder="true"]) {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.fields :global(.pin-board-select) option {
+  color: var(--ink);
+}

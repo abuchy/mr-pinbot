@@ -46,7 +46,7 @@ export function PinBoardSelect({ value, onChange, disabled = false, enabled = tr
   }, [enabled, retry]);
   return <div>
     <label className="field-label">Pinterest Board
-      <select className="pin-board-select" required={required} value={value} disabled={disabled || loading || !enabled}
+      <select className="pin-board-select" data-placeholder={!value} required={required} value={value} disabled={disabled || loading || !enabled}
         onChange={event => onChange(event.target.value)}>
         <option value="" disabled={!!value}>{loading ? "Loading boards…" : "Choose a board"}</option>
         {value && !boards.some(board => board.id === value) && <option value={value}>Saved board · {value}</option>}
