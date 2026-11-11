@@ -220,7 +220,7 @@ export function AnalyticsView() {
           </g>)}
         </svg>
         {activePoint && <div className={styles.chartTooltip} aria-hidden="true"
-          style={{ left: `clamp(84px, ${activePoint.x / 10}%, calc(100% - 84px))`, top: `${activePoint.y / 1.6}%` }}>
+          style={{ left: `${activePoint.x / 10}%`, top: `${activePoint.y / 1.6}%`, transform: `translate(-${activePoint.x / 10}%, 10px)` }}>
           <span>{activePoint.date}</span>
           <strong>{number(activePoint.count)} {activePoint.label}</strong>
         </div>}
