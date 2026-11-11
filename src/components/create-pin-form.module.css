@@ -57,5 +57,5 @@
 }
 
 .panel:global(.import-panel) {
-  margin-top: 41px;
+  margin-top: 0;
 }
