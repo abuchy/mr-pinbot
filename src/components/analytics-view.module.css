@@ -6,9 +6,7 @@
 .note { font-size: 12px; color: var(--muted); line-height: 1.8; margin-bottom: 20px; }
 .chart { border: 1px solid var(--line); padding: 24px; margin-bottom: 32px; }
 .chart h2 { font-size: 20px; margin-bottom: 24px; }
-.bars { display: flex; align-items: end; gap: 3px; height: 160px; border-bottom: 1px solid var(--line); }
-.barColumn { height: 100%; flex: 1; display: flex; align-items: end; }
-.bar { width: 100%; background: var(--burgundy); }
+.lineChart { display: block; width: 100%; height: 160px; color: var(--burgundy); border-bottom: 1px solid var(--line); }
 .chartDates { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 10px; }
 .pinSection { margin-top: 32px; }
 .search { max-width: 340px; margin-bottom: 24px; }
@@ -26,4 +24,17 @@
   .options label { flex: 1; min-width: 140px; }
   .chart { padding: 18px; }
   .table th, .table td { padding: 12px; }
+}
+
+
+.options select {
+  appearance: none;
+  padding-right: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+  background-size: 12px 8px;
+}
+@media (forced-colors: active) {
+  .options select { appearance: auto; background-image: none; }
 }

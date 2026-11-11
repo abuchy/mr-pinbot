@@ -128,7 +128,17 @@ export function AnalyticsView() {
 
   const filtered = pins.filter(pin => pin.title.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => (b[period][sort] ?? -1) - (a[period][sort] ?? -1));
-  const max = Math.max(1, ...(summary?.daily.map(day => day.metrics.IMPRESSION ?? 0) || []));
+  const daysWithData = (summary?.daily ?? [])
+    .filter(day => day.status !== "PROCESSING" && day.metrics.IMPRESSION !== null)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const max = Math.max(1, ...daysWithData.map(day => day.metrics.IMPRESSION!));
+  const startTime = Date.parse(summary?.range.start ?? "");
+  const duration = Math.max(86_400_000, Date.parse(summary?.range.end ?? "") - startTime);
+  const points = daysWithData.map(day => ({
+    date: day.date, count: day.metrics.IMPRESSION!,
+    x: 4 + 992 * (Date.parse(day.date) - startTime) / duration,
+    y: 156 - 152 * day.metrics.IMPRESSION! / max,
+  }));
   return <>
     <div className={styles.controls}>
       <span>{summary ? `@${summary.profile.username} · Pinterest account performance` : "Pinterest account performance"}</span>
@@ -140,7 +150,7 @@ export function AnalyticsView() {
       </div>
     </div>
     {summaryError && <p className="import-alert error" role="alert">{summaryError} <Link className="text-link" href="/queue">Pinterest connection</Link></p>}
-    {summary && <p className={styles.note}>{summary.range.start} – {summary.range.end} · UTC · Includes activity on existing Pins.</p>}
+    {summary && <p className={styles.note}>{summary.range.start} – {summary.range.end} · UTC · Includes activity on pre-existing Pins.</p>}
     <section className="stats-grid analytics-stats" aria-label="Account performance">
       {analyticsMetrics.map(metric => <div className="stat" key={metric}>
         <div className="stat-label">{labels[metric]}</div>
@@ -150,12 +160,15 @@ export function AnalyticsView() {
     </section>
     {summary && <section className={styles.chart}>
       <h2>Impressions over time</h2>
-      {!summary.daily.some(day => day.metrics.IMPRESSION !== null) && <p className={styles.note}>Pinterest has not supplied daily impression data for this period.</p>}
-      <div className={styles.bars} role="img" aria-label={`Daily impressions from ${summary.range.start} to ${summary.range.end}`}>
-        {summary.daily.map(day => <div className={styles.barColumn} key={day.date} title={`${day.date}: ${number(day.metrics.IMPRESSION)} impressions · ${day.status || "Status unavailable"}`}>
-          <div className={styles.bar} style={{ height: `${((day.metrics.IMPRESSION ?? 0) / max) * 100}%` }}/>
-        </div>)}
-      </div>
+      {!points.length ? <p className={styles.note}>Pinterest has not supplied daily impression data for this period.</p>
+        : <svg className={styles.lineChart} viewBox="0 0 1000 160" preserveAspectRatio="none" role="img"
+            aria-label={`Daily impressions from ${summary.range.start} to ${summary.range.end}`}>
+          <polyline points={points.map(point => `${point.x},${point.y}`).join(" ")} fill="none" stroke="currentColor"
+            strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round"/>
+          {points.map(point => <circle key={point.date} cx={point.x} cy={point.y} r="3" fill="currentColor">
+            <title>{point.date}: {number(point.count)} impressions</title>
+          </circle>)}
+        </svg>}
       <div className={styles.chartDates}><span>{summary.range.start}</span><span>{summary.range.end}</span></div>
     </section>}
     <section className={styles.pinSection}>
