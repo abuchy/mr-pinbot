@@ -211,3 +211,25 @@ export async function ensurePinterestSandboxBoard(token: string) {
   }
   throw new Error("Sandbox board listing did not finish.");
 }
+
+export async function pinterestAccountAnalytics(token: string, start: string, end: string) {
+  const query = new URLSearchParams({
+    start_date: start, end_date: end, metric_types: "IMPRESSION,SAVE,PIN_CLICK,OUTBOUND_CLICK",
+    from_claimed_content: "BOTH", content_type: "ALL", source: "ALL", split_field: "NO_SPLIT",
+  });
+  return pinterestRequest<Record<string, {
+    summary_metrics?: Record<string, number>;
+    daily_metrics?: { date: string; data_status?: string; metrics?: Record<string, number> }[];
+  }>>("user_account/analytics?" + query, { headers: { Authorization: "Bearer " + token } });
+}
+
+export async function pinterestAccountPins(token: string, bookmark?: string, metrics = true) {
+  const query = new URLSearchParams({ page_size: "100", pin_metrics: String(metrics) });
+  if (bookmark) query.set("bookmark", bookmark);
+  return pinterestRequest<{
+    items: { id: string; title?: string | null; created_at?: string | null;
+      media?: { images?: Record<string, { url?: string }> };
+      pin_metrics?: Record<string, unknown> | null }[];
+    bookmark?: string | null;
+  }>("pins?" + query, { headers: { Authorization: "Bearer " + token } });
+}

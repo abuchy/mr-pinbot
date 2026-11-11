@@ -1,0 +1,29 @@
+.controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+.controls > span { font-size: 13px; }
+.options { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; }
+.options label, .search { display: grid; gap: 8px; font-size: 12px; }
+.options select, .search input { height: 43px; border: 1px solid #ccc; padding: 10px 12px; background: white; color: black; font: inherit; }
+.note { font-size: 12px; color: var(--muted); line-height: 1.8; margin-bottom: 20px; }
+.chart { border: 1px solid var(--line); padding: 24px; margin-bottom: 32px; }
+.chart h2 { font-size: 20px; margin-bottom: 24px; }
+.bars { display: flex; align-items: end; gap: 3px; height: 160px; border-bottom: 1px solid var(--line); }
+.barColumn { height: 100%; flex: 1; display: flex; align-items: end; }
+.bar { width: 100%; background: var(--burgundy); }
+.chartDates { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 10px; }
+.pinSection { margin-top: 32px; }
+.search { max-width: 340px; margin-bottom: 24px; }
+.tableScroll { overflow-x: auto; border: 1px solid var(--line); margin-bottom: 20px; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th, .table td { padding: 16px; border-bottom: 1px solid var(--line); text-align: right; }
+.table th { font-weight: 500; white-space: nowrap; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.pin { display: flex; align-items: center; gap: 14px; min-width: 220px; max-width: 440px; }
+.pin img { object-fit: cover; flex-shrink: 0; }
+.pin:hover span { text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 600px) {
+  .options { width: 100%; gap: 12px; }
+  .options label { flex: 1; min-width: 140px; }
+  .chart { padding: 18px; }
+  .table th, .table td { padding: 12px; }
+}
