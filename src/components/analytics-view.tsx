@@ -197,7 +197,7 @@ export function AnalyticsView() {
     </section>
     <p className={styles.note}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
-      <h2>Impressions over time</h2>
+      <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
       <ul className={styles.chartLegend} aria-label="Chart legend">
         {chartSeries.map(({ metric, color, max, points }) => <li key={metric}>
           <span aria-hidden="true" style={{ backgroundColor: color }}/>
