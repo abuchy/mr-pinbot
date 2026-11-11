@@ -7,6 +7,7 @@ import { safePublicUrl, type ContentItem } from "@/lib/content";
 import { isBlockedMetadata } from "@/lib/enrichment/blocked";
 import { type ImportProgress } from "@/lib/import-queue";
 import { CreatePinForm } from "./create-pin-form";
+import { PinBoardSelect } from "./pin-board-select";
 import { ProductFields } from "./product-fields";
 import { Icon } from "./icons";
 import { publishingDailyLimit, publishingZones } from "@/lib/publishing-preferences";
@@ -23,6 +24,7 @@ function PinThumbnail({url, title}: {url: string; title: string}) {
 
 type Job = {
   content_id: string;
+  board_name: string;
   scheduled_at: string | null;
   automatic_at: string | null;
   published_at: string | null;
@@ -61,6 +63,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
   const [imageBusy,setImageBusy]=useState(false);
   const [descriptionBusy,setDescriptionBusy]=useState(false);
   const [editing, setEditing] = useState<ContentItem | null>(null);
+  const [editorBoard, setEditorBoard] = useState("");
   const [hasPinChanges,setHasPinChanges]=useState(false);
   const [editorError, setEditorError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -160,12 +163,12 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
   }
   function closeEditor() { editor.current?.close(); setEditing(null); setEditorError(""); }
   async function saveDetails(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!editing || !hasPinChanges || busy || descriptionBusy || imageBusy) return;
+    event.preventDefault(); if (!editing || !(hasPinChanges || editorBoard !== (editing.pinterest_board_id || "")) || busy || descriptionBusy || imageBusy) return;
     const data = new FormData(event.currentTarget);
     setBusy(true); setEditorError("");
     try {
       const details={original_image_url:data.get('original_image_url'),product_description:data.get('product_description'),product_name:data.get('product_name'),website_url:data.get('website_url'),image_url:data.get('image_url'),description_is_manual:data.get('description_is_manual')==='true',description_image_url:data.get('description_image_url')};
-      await request(`/api/content/${editing.id}`, { method: 'PATCH', body: JSON.stringify({ ...details, updated_at: editing.updated_at }) });
+      await request(`/api/content/${editing.id}`, { method: 'PATCH', body: JSON.stringify({ ...details, ...(editorBoard && editorBoard !== (editing.pinterest_board_id || "") ? { boardId: editorBoard } : {}), updated_at: editing.updated_at }) });
       setProgress(previous => {
         const next = { ...previous };
         delete next[editing.id];
@@ -302,7 +305,13 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         {filter === "Drafts" ? <button className="button primary" disabled={busy || !selected.length} onClick={async () => {
           setBusy(true);
           setError("");
-          try { await loadBoards(); }
+          try {
+            if (selected.every(id => items.find(item => item.id === id)?.pinterest_board_id)) {
+              await changeSchedule("schedule", selected);
+            } else {
+              await loadBoards();
+            }
+          }
           catch (e) { setError(e instanceof Error ? e.message : "Could not load boards."); }
           finally { setBusy(false); }
         }}>Schedule Pins</button> : <button className="button primary" disabled={busy || !selected.length} onClick={() => {
@@ -336,7 +345,7 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
         return <article className="content-card" key={item.id}>{queue && <label className="pin-selection"><input type="checkbox"
         aria-label={`Select ${item.product_name || "draft Pin"}`} disabled={busy || !!locked}
         checked={selected.includes(item.id)} onChange={event => setSelection(previous => event.target.checked
-          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3><a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{!showAttention && description}{!showAttention && job && publicationDetails(job)}
+          ? [...previous, item.id] : previous.filter(id => id !== item.id))}/></label>}<PinThumbnail key={item.image_url} url={item.image_url} title={item.product_name}/><div className="content-card-body"><h3>{(!isBlockedMetadata(item.product_name) && item.product_name) || "Product details pending"}</h3>{(job?.board_name || item.pinterest_board_name) && <p>Board · {job?.board_name || item.pinterest_board_name}</p>}<a className="affiliate-link" href={item.website_url||item.affiliate_url} target="_blank" rel="noreferrer">{item.website_url||item.affiliate_url} ↗</a>{!showAttention && description}{!showAttention && job && publicationDetails(job)}
         {!locked && <>
           {findingDetails && <p className="field-help">{progress[item.id] === 'queued' ? 'Queued' : 'Finding product details…'}</p>}
           {!showAttention && progress[item.id] === 'completed' && <p className="field-help">Completed</p>}
@@ -344,16 +353,16 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
           {showAttention && description}
           {showAttention && job && publicationDetails(job)}
           <div className="pin-card-actions">
-          <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
+          <button className="button primary" disabled={busy} onClick={() => { setHasPinChanges(false); setEditorBoard(item.pinterest_board_id || ""); setEditing({...item,image_url:item.image_url||''}); setEditorError(""); }}>Edit this Pin</button>
           {deletingId===item.id?<div className="delete-confirmation" role="group" aria-label="Confirm deletion"><p>Delete this library item and its saved details? You can re-import the same link afterward.</p><div className="form-actions"><button className="button delete-button" disabled={busy} onClick={()=>void deleteItem(item)}>{busy?'Deleting…':'Yes, delete item'}</button><button className="button quiet" disabled={busy} onClick={()=>setDeletingId(null)}>Cancel</button></div></div>:<button className="inline-button delete-link" disabled={busy} onClick={()=>setDeletingId(item.id)} aria-label={`Delete ${item.product_name||'library item'}`}>Delete item</button>}</div></>}</div></article>;
       })}{visibleArchive.map(job => <article className="content-card" key={job.content_id}>
         <PinThumbnail url={job.image_url} title={job.title}/>
-        <div className="content-card-body"><h3>{job.title}</h3>
+        <div className="content-card-body"><h3>{job.title}</h3><p>Board · {job.board_name}</p>
           <a className="affiliate-link" href={job.destination_url} target="_blank" rel="noreferrer">{job.destination_url} ↗</a>
           {job.description && <p>{job.description}</p>}{publicationDetails(job)}
         </div>
       </article>)}</div>}
     </>}
-    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!hasPinChanges}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button></div></form>}</dialog>
+    <dialog className="details-dialog" ref={editor} onCancel={event => { if (busy) event.preventDefault(); else closeEditor(); }} onClose={() => { setEditing(null); setEditorError(""); }} aria-labelledby="details-title">{editing && <form onSubmit={saveDetails}><div className="editor-heading"><div><h2 id="details-title">Edit this Pin</h2></div><button type="button" className="inline-button" onClick={closeEditor} disabled={busy} aria-label="Close Pin editor">Close</button></div><fieldset disabled={busy}><PinBoardSelect value={editorBoard} onChange={setEditorBoard} disabled={busy || byContent.has(editing.id)} required={false}/><ProductFields key={editing.id+editing.updated_at} values={editing} onDescribe={describe} onHostImage={hostImage} onHosting={setImageBusy} onPending={setDescriptionBusy} onChanges={setHasPinChanges}/></fieldset>{editorError && <p className="validation-error" role="alert">{editorError}</p>}<div className="form-actions"><button className="button primary" disabled={busy||descriptionBusy||imageBusy||!(hasPinChanges || editorBoard !== (editing.pinterest_board_id || ""))}>{busy ? "Saving…" : descriptionBusy?"Describing image…":"Save updates"}</button><button className="button quiet" type="button" onClick={closeEditor} disabled={busy}>Cancel</button></div></form>}</dialog>
   </>;
 }

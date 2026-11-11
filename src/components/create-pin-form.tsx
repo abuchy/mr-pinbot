@@ -1,5 +1,6 @@
 "use client";
 
+import { PinBoardSelect } from "./pin-board-select";
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { parseShopMyLink, safePublicUrl } from "@/lib/content";
@@ -8,6 +9,7 @@ import { browserDatabase } from "@/lib/supabase-browser";
 import styles from "./create-pin-form.module.css";
 
 export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCreated: () => void }) {
+  const [boardId, setBoardId] = useState("");
   const [title, setTitle] = useState("");
   const [affiliate, setAffiliate] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -21,7 +23,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
   const upload = useRef<HTMLInputElement>(null);
   const preview = file ? localPreview : imageUrl.trim();
   const validImage = !!preview && previewState.url === preview && previewState.valid;
-  const valid = !!title.trim() && title.trim().length <= 100 && !isBlockedMetadata(title)
+  const valid = !!boardId && !!title.trim() && title.trim().length <= 100 && !isBlockedMetadata(title)
     && !!parseShopMyLink(affiliate.trim()) && validImage
     && (file ? file.size > 0 && file.size <= 4_000_000 : !!safePublicUrl(imageUrl.trim()) && imageUrl.trim().length <= 2048);
 
@@ -36,6 +38,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
   }
 
   function clear() {
+    setBoardId("");
     setTitle("");
     setAffiliate("");
     removeImage();
@@ -54,6 +57,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
       const session = (await browserDatabase()?.auth.getSession())?.data.session;
       if (!session) throw new Error("Your session ended. Please sign in again.");
       const data = new FormData();
+      data.set("boardId", boardId);
       data.set("title", title.trim());
       data.set("affiliate", affiliate.trim());
       if (file) data.set("image", file);
@@ -85,6 +89,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
         <label className="field-label">ShopMy Affiliate Link
           <input type="url" required maxLength={2048} value={affiliate} onChange={event => setAffiliate(event.target.value)}/>
         </label>
+        <PinBoardSelect value={boardId} onChange={setBoardId} disabled={disabled || busy}/>
         <div className={styles.images}>
           <label className="field-label">Image URL
             <input type="url" maxLength={2048} value={imageUrl} onChange={event => {
@@ -125,7 +130,7 @@ export function CreatePinForm({ disabled, onCreated }: { disabled: boolean; onCr
       </fieldset>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {message && <p className="import-alert" role="status">{message}</p>}
-      <div className="form-actions"><button className="button primary" disabled={disabled || busy || !valid}>{busy ? "Creating pin..." : "Create Pin"}</button><button type="button" className="button primary" disabled={disabled || busy || !(title || affiliate || imageUrl || file)} onClick={clear}>Clear</button></div>
+      <div className="form-actions"><button className="button primary" disabled={disabled || busy || !valid}>{busy ? "Creating pin..." : "Create Pin"}</button><button type="button" className="button primary" disabled={disabled || busy || !(title || affiliate || imageUrl || file || boardId)} onClick={clear}>Clear</button></div>
     </form>
   </section>;
 }

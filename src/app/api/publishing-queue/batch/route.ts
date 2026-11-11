@@ -35,11 +35,8 @@ export async function POST(request: NextRequest) {
   }
 
   const trial = process.env.PINTEREST_ACCESS_TIER !== "standard";
-  const boardId = trial ? process.env.PINTEREST_SANDBOX_BOARD_ID : input.boardId;
   const sandboxToken = process.env.PINTEREST_SANDBOX_ACCESS_TOKEN?.trim();
-  if (typeof boardId !== "string" || !/^\d{1,32}$/.test(boardId) || (trial && !sandboxToken)) {
-    return privateJson({ error: trial ? "Connect a Sandbox board before scheduling Trial Pins." : "Choose a Pinterest board." }, 400);
-  }
+  if (trial && !sandboxToken) return privateJson({ error: "Connect a Sandbox board before scheduling Trial Pins." }, 400);
   const { data: connection, error } = await connectionTable(config)
     .select("owner_id,revision,token_ciphertext,access_expires_at,reconnect_required")
     .eq("owner_id", auth.user.id).maybeSingle();
@@ -51,15 +48,27 @@ export async function POST(request: NextRequest) {
   try {
     const access = await refreshAccess(config, connection);
     const token = trial ? sandboxToken! : access;
-    const [profile, board] = await Promise.all([pinterestProfile(token, trial), pinterestBoard(token, boardId, trial)]);
-    if (board.privacy !== "PUBLIC" || (trial && profile.username !== (await pinterestProfile(access)).username)) {
-      return privateJson({ error: "Choose an available public board for this account." }, 409);
+    const profile = await pinterestProfile(token, trial);
+    if (trial && profile.username !== (await pinterestProfile(access)).username) {
+      return privateJson({ error: "The Sandbox token belongs to a different Pinterest account." }, 409);
     }
     const items = await auth.database.from("content_items")
-      .select("id,updated_at,product_name,product_description,image_url,website_url,affiliate_url")
+      .select("id,updated_at,product_name,product_description,image_url,website_url,affiliate_url,pinterest_board_id")
       .eq("owner_id", auth.user.id).in("id", ids);
     if (items.error) return privateJson({ error: "Could not read the selected Pins." }, 503);
-    const versions: Record<string, string> = {};
+    const groups = new Map<string, Record<string, string>>();
+    const verifiedBoards = new Map<string, Awaited<ReturnType<typeof pinterestBoard>>>();
+    // Verify every board before inserting any jobs. Each group retains optimistic row versions.
+    for (const item of items.data) {
+      const id = item.pinterest_board_id || (trial ? process.env.PINTEREST_SANDBOX_BOARD_ID : input.boardId);
+      if (typeof id !== "string" || !/^\d{1,32}$/.test(id)) return privateJson({ error: "Choose a board in Edit this Pin for each selected Pin." }, 400);
+      if (!verifiedBoards.has(id)) {
+        const board = await pinterestBoard(token, id, trial);
+        if (board.privacy !== "PUBLIC") return privateJson({ error: "A selected board is unavailable. Edit the Pin to choose another board." }, 409);
+        verifiedBoards.set(id, board);
+      }
+      if (!groups.has(id)) groups.set(id, {});
+    }
     const skipped: string[] = [];
     for (const item of items.data) {
       if (!item.product_name.trim() || isBlockedMetadata(item.product_name) || isBlockedMetadata(item.product_description) || [...item.product_name].length > 100 ||
@@ -67,15 +76,22 @@ export async function POST(request: NextRequest) {
           !safePublicUrl(item.website_url || item.affiliate_url)) {
         skipped.push(`${item.product_name || "Untitled Pin"}: add a title (up to 100 characters), public HTTPS image and destination, and keep the description within 500 characters.`);
       } else {
-        versions[item.id] = item.updated_at;
+        const id = item.pinterest_board_id || (trial ? process.env.PINTEREST_SANDBOX_BOARD_ID : input.boardId);
+        groups.get(id)![item.id] = item.updated_at;
       }
     }
-    const result = await database.rpc("schedule_library_pins", {
-      p_owner: auth.user.id, p_versions: versions, p_account: profile.username,
-      p_board: board.id, p_board_name: board.name,
-    });
-    if (result.error) return privateJson({ error: "Could not schedule the selected Pins." }, 503);
-    return privateJson({ message: `${result.data} scheduled · ${ids.length - result.data} skipped. ${skipped.join(" ")}${Object.keys(versions).length > result.data ? " Some Pins changed, were already scheduled, or had no available slot." : ""}`.trim() });
+    let scheduled = 0;
+    for (const [id, versions] of groups) {
+      if (!Object.keys(versions).length) continue;
+      const board = verifiedBoards.get(id)!;
+      const result = await database.rpc("schedule_library_pins", {
+        p_owner: auth.user.id, p_versions: versions, p_account: profile.username,
+        p_board: board.id, p_board_name: board.name,
+      });
+      if (result.error) return privateJson({ error: `${scheduled} scheduled. Scheduling was interrupted. Refresh and retry the remaining Drafts.` }, 503);
+      scheduled += result.data;
+    }
+    return privateJson({ message: `${scheduled} scheduled · ${ids.length - scheduled} skipped. ${skipped.join(" ")}`.trim() });
   } catch {
     return privateJson({ error: "Pinterest could not verify the account and board." }, 503);
   }

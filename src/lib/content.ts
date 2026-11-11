@@ -1,6 +1,8 @@
 export const MAX_IMPORT_LINKS = 100;
 export type ContentItem = {
   id: string;
+  pinterest_board_id?: string | null;
+  pinterest_board_name?: string | null;
   affiliate_url: string;
   source_key: string;
   product_name: string;

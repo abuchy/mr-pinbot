@@ -1,5 +1,6 @@
 "use client";
 
+import { PinBoardSelect } from "@/components/pin-board-select";
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 import { parseShopMyLink, safePublicUrl } from "@/lib/content";
@@ -11,6 +12,7 @@ type Capture = { title: string; source: string; data: string };
 const maxBytes = 4_000_000;
 
 export function CaptureForm() {
+  const [boardId, setBoardId] = useState("");
   const [capture, setCapture] = useState<Capture>();
   const [title, setTitle] = useState("");
   const [affiliate, setAffiliate] = useState("");
@@ -57,6 +59,7 @@ export function CaptureForm() {
   }, []);
 
   function clear() {
+    setBoardId("");
     setTitle("");
     setAffiliate("");
     setCopiedImage("");
@@ -84,6 +87,7 @@ export function CaptureForm() {
       if (!image && !copiedImage && !capture?.source) throw new Error("Copy an image address to continue.");
       if (image && image.size > maxBytes) throw new Error("Choose an image under 4 MB.");
       const form = new FormData();
+      form.set("boardId", boardId);
       form.set("title", title);
       form.set("affiliate", affiliate);
       if (image) form.set("image", image);
@@ -126,13 +130,14 @@ export function CaptureForm() {
         <input type="url" required maxLength={2048} value={affiliate} disabled={busy}
           onChange={event => setAffiliate(event.target.value)}/>
       </label>
+      <PinBoardSelect value={boardId} onChange={setBoardId} disabled={busy} enabled={signedIn}/>
       {error && <p className="validation-error" role="alert">{error}</p>}
       {!signedIn && <p className="field-help"><a style={{ font: "inherit", color: "inherit" }} href="/library" target="_blank" rel="noreferrer">Sign in to Mr. Pinbot to save.</a></p>}
       {saved && <p className="import-alert" role="status">Pin added to your library!</p>}
-      <div className="form-actions"><button className="button primary" disabled={busy || !signedIn || !imageUrl}>
+      <div className="form-actions"><button className="button primary" disabled={busy || !signedIn || !imageUrl || !boardId}>
         {busy ? "Creating pin..." : "Create Pin"}
       </button>
-      <button type="button" className="button primary" disabled={busy || !(title || affiliate || imageUrl)} onClick={clear}>Clear</button></div>
+      <button type="button" className="button primary" disabled={busy || !(title || affiliate || imageUrl || boardId)} onClick={clear}>Clear</button></div>
     </form>
   </main>;
 }

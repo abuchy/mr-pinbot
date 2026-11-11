@@ -5,6 +5,8 @@ import { describeImage } from "@/lib/description";
 import { isBlockedMetadata } from "@/lib/enrichment/blocked";
 import { imageFailureCode, saveProductImageBytes, storeProductImage } from "@/lib/product-images";
 
+import { verifyPinBoard } from "@/lib/pin-board";
+
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
@@ -37,6 +39,12 @@ export async function POST(request: NextRequest) {
   if (existing.error) return privateJson({ error: "Could not check your library. Try again." }, 503);
   if (existing.data) return privateJson({ error: "This link is already saved. Open the library to edit the existing Pin." }, 409);
 
+  let selectedBoard = {};
+  const boardId = form?.get("boardId");
+  if (boardId) {
+    try { selectedBoard = await verifyPinBoard(user.id, boardId); }
+    catch (failure) { return privateJson({ error: failure instanceof Error ? failure.message : "Could not verify the Pinterest board." }, 409); }
+  }
   let image;
   try {
     image = file instanceof File
@@ -52,7 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: draft, error } = await items.insert({
-    ...link, ...image, owner_id: user.id, website_url: link.affiliate_url,
+    ...link, ...image, ...selectedBoard, owner_id: user.id, website_url: link.affiliate_url,
     product_name: title, source: "authorized_browser", enrichment_status: "partial",
   }).select("id,updated_at").single();
   if (error?.code === "23505") return privateJson({ error: "This link is already saved. Open the library to view the Pin." }, 409);

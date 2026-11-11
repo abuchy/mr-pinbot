@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: item, error } = await auth.database.from("content_items")
-    .select("id,updated_at,product_name,product_description,image_url,website_url,affiliate_url")
+    .select("id,updated_at,product_name,product_description,image_url,website_url,affiliate_url,pinterest_board_id")
     .eq("owner_id", auth.user.id).eq("id", input.id).maybeSingle();
   if (error) return privateJson({ error: "The library item is unavailable." }, 503);
   if (!item || item.updated_at !== input.version) {
@@ -55,8 +55,9 @@ export async function POST(request: NextRequest) {
     if (connectionError) return privateJson({ error: "Pinterest connection storage is unavailable." }, 503);
     if (!row?.token_ciphertext) return privateJson({ error: "Connect Pinterest before approving a Pin." }, 409);
     const token = await refreshAccess(config, row);
-    const [profile, board] = await Promise.all([pinterestProfile(token), pinterestBoard(token, input.boardId)]);
-    if (profile.username !== input.account || board.id !== input.boardId || board.privacy !== "PUBLIC" || board.name !== input.boardName) {
+    const boardId = item.pinterest_board_id || input.boardId;
+    const [profile, board] = await Promise.all([pinterestProfile(token), pinterestBoard(token, boardId)]);
+    if (profile.username !== input.account || board.id !== boardId || board.privacy !== "PUBLIC" || (!item.pinterest_board_id && board.name !== input.boardName)) {
       return privateJson({ error: "The Pinterest account or board changed. Refresh the queue and review again." }, 409);
     }
     const saved = await pinterestDatabase(config).from("pin_approvals").insert({

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { validateDetails } from "@/lib/content";
 import {originalImageUrl} from "@/lib/product-images";
+import { verifyPinBoard } from "@/lib/pin-board";
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!sameOrigin(request)) return privateJson({ error: "Request not allowed." }, 403);
   try {
@@ -15,10 +16,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let details;
     try { details = validateDetails(input); } catch (error) { return privateJson({ error: error instanceof Error ? error.message : "Invalid details." }, 400); }
     if (typeof input.updated_at !== "string") return privateJson({ error: "Reload this item before saving." }, 400);
+    let board = {};
+    if (input.boardId !== undefined) {
+      try { board = await verifyPinBoard(auth.user.id, input.boardId); }
+      catch (failure) { return privateJson({ error: failure instanceof Error ? failure.message : "Could not verify the board." }, 409); }
+    }
     const original_image_url=await originalImageUrl(auth.database,auth.user.id,details.image_url,input.original_image_url);
     const full=details.product_name&&details.website_url&&details.image_url&&details.product_description;
     const enrichment_status=full?'review_required':details.product_name?'partial':'pending';
-    const { data, error } = await auth.database.from("content_items").update({ ...details, original_image_url, metadata_reviewed:true, enrichment_status, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
+    const { data, error } = await auth.database.from("content_items").update({ ...details, ...board, original_image_url, metadata_reviewed:true, enrichment_status, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", auth.user.id).eq("updated_at", input.updated_at).select("id").maybeSingle();
     if (error?.code === "23514") return privateJson({ error: error.message }, 409);
     if (error) return privateJson({ error: "Couldn’t save your changes. Please try again." }, 503);
     if (!data) return privateJson({ error: "This item changed in another tab. Refresh the library before editing again." }, 409);
