@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson, sameOrigin } from "@/lib/api-auth";
 import { validateDetails } from "@/lib/content";
-import {originalImageUrl} from "@/lib/product-images";
+import {originalImageUrl} from "@/lib/product-image-urls";
 import { verifyPinBoard } from "@/lib/pin-board";
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!sameOrigin(request)) return privateJson({ error: "Request not allowed." }, 403);

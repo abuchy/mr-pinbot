@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { authenticatedDatabase, privateJson, sameOrigin } from '@/lib/api-auth';
 import { previewImport, validateDetails } from '@/lib/content';
-import {originalImageUrl} from '@/lib/product-images';
+import {originalImageUrl} from '@/lib/product-image-urls';
 export const maxDuration=60;
 export async function GET(request: NextRequest) {
   try {
