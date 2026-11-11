@@ -196,13 +196,15 @@ export function AnalyticsView() {
     </section>
     <p className={styles.note}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
-      <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
-      <ul className={styles.chartLegend} aria-label="Chart legend">
-        {chartSeries.map(({ metric, color, points }) => <li key={metric}>
-          <span aria-hidden="true" style={{ backgroundColor: color }}/>
-          {labels[metric]}{!points.length && " (no daily data)"}
-        </li>)}
-      </ul>
+      <div className={styles.chartHeader}>
+        <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
+        <ul className={styles.chartLegend} aria-label="Chart legend">
+          {chartSeries.map(({ metric, color, points }) => <li key={metric}>
+            <span aria-hidden="true" style={{ backgroundColor: color }}/>
+            {labels[metric]}{!points.length && " (no daily data)"}
+          </li>)}
+        </ul>
+      </div>
       {!chartSeries.some(series => series.points.length) ? <p className={styles.note}>Pinterest has not supplied daily data for this period.</p>
         : <div className={styles.chartPlot}><svg className={styles.lineChart} viewBox="0 0 1000 160" preserveAspectRatio="none" role="img"
             aria-label={`Daily impressions and outbound clicks from ${summary.range.start} to ${summary.range.end}`}>
