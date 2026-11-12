@@ -207,4 +207,4 @@ main:has(.pinterest-connection-panel) { padding-bottom: var(--main-side-padding)
   background-color: #fff;
 }
 
-.integration-notice.library-privacy-notice { margin-top: 20px; padding-top: 0; border-top: 0; }
+.integration-notice.library-privacy-notice { margin-top: 15px; padding-top: 0; border-top: 0; }
