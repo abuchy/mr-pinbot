@@ -256,19 +256,16 @@ export function LibraryView({ queue = false }: { queue?: boolean }) {
     setError("");
     setMessage("");
     let outcomeError = "";
-    let outcomeMessage = "";
     try {
       const result = await request("/api/publishing-queue/publish-now", {
         method: "POST", body: JSON.stringify({ id: item.id, version: item.updated_at }),
       });
-      if (result.status === "published") outcomeMessage = "Pin published.";
-      else outcomeError = result.error || "Publishing needs attention. Check the Pin's status before trying again.";
+      if (result.status !== "published") outcomeError = result.error || "Publishing needs attention. Check the Pin's status before trying again.";
     } catch (failure) {
       outcomeError = failure instanceof Error ? failure.message : "Could not confirm publishing. Check Pinterest and refresh the queue before trying again.";
     } finally {
       await load();
       if (outcomeError) setError(outcomeError);
-      setMessage(outcomeMessage);
       try { window.localStorage.setItem(syncKey, crypto.randomUUID()); } catch { /* The queue already refreshed. */ }
       setPublishingId(null);
       setBusy(false);
