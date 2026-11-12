@@ -81,7 +81,12 @@
   .publishing-preferences { grid-template-columns: 1fr; }
 }
 
-.queue-workspace + .section-panel { margin-top: 24px; }
+.queue-workspace + .pinterest-connection-panel {
+  margin-top: calc(var(--page-section-gap) + 5px);
+}
+.queue-preferences-panel + .queue-heading {
+  margin-top: calc(var(--page-section-gap) + 5px);
+}
 main:has(.pinterest-connection-panel) { padding-bottom: var(--main-side-padding); }
 
 .queue-preferences-panel { padding: 24px; }
