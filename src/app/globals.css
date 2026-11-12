@@ -233,12 +233,11 @@ main:has(> .welcome-panel) > .stats-grid:last-child {
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .mascot-wrap:hover .hero-mascot {
-    animation: pinbot-wiggle 850ms ease-in-out;
+    animation: pinbot-wiggle 1000ms ease-in-out;
   }
 }
 
 @keyframes pinbot-wiggle {
-  25% { transform: rotate(-7deg) scale(1.05); }
-  55% { transform: rotate(13deg) scale(0.97); }
-  80% { transform: rotate(-2deg) scale(1.02); }
+  33% { transform: rotate(-7deg) scale(1.05); }
+  67% { transform: rotate(13deg) scale(0.97); }
 }
