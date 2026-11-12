@@ -82,6 +82,7 @@
 }
 
 .queue-workspace + .section-panel { margin-top: 24px; }
+main:has(.pinterest-connection-panel) { padding-bottom: var(--main-side-padding); }
 
 .queue-preferences-panel { padding: 24px; }
 .section-panel[aria-labelledby="pinterest-connection-title"] { --connection-inset: 24px; }
