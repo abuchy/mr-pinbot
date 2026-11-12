@@ -256,7 +256,7 @@ export function AnalyticsView() {
           {analyticsMetrics.map(metric => <td key={metric}>{number(pin[period][metric])}</td>)}
         </tr>)}</tbody>
       </table></div>}
-      {filtered.length > shown && <button className={`button primary ${styles.showMorePins}`} onClick={() => setShown(value => value + 50)}>Show more Pins</button>}
+      {filtered.length > shown && <button className={`button primary ${styles.showMorePins}`} onClick={() => setShown(value => value + initialPinCount)}>Show more Pins</button>}
       {pins.length > 0 && filtered.length === 0 && <p className={styles.note}>No matching Pins.</p>}
       <p className={styles.note}>Pin metrics use the period shown above and are independent of the account date range. A dash means Pinterest did not supply that metric. Lifetime coverage varies by Pin age and format. Recent activity may still be processing.</p>
     </section>
