@@ -217,3 +217,12 @@ main:has(> .welcome-panel) {
 main:has(> .welcome-panel) > .stats-grid:last-child {
   margin-bottom: 0;
 }
+
+.topbar-section {
+  display: inline-block;
+  padding-inline: 6px 8px;
+  border-inline-start: 2px solid var(--burgundy);
+  background: var(--blue);
+  color: var(--burgundy);
+  line-height: 1.15;
+}
