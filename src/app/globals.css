@@ -230,3 +230,15 @@ main:has(> .welcome-panel) > .stats-grid:last-child {
 @media (801px <= width <= 1100px) {
   .sidebar-note { font-size: 10.5px; }
 }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .mascot-wrap:hover .hero-mascot {
+    animation: pinbot-wiggle 500ms ease-in-out;
+  }
+}
+
+@keyframes pinbot-wiggle {
+  25% { transform: rotate(-7deg); }
+  55% { transform: rotate(13deg); }
+  80% { transform: rotate(-2deg); }
+}
