@@ -95,7 +95,7 @@ main:has(.pinterest-connection-panel) { padding-bottom: var(--main-side-padding)
   padding-inline: var(--connection-inset);
 }
 .pinterest-connection-body { padding: 24px var(--connection-inset); }
-.queue-workspace .library-toolbar { margin: 12px 0; }
+.queue-workspace .library-toolbar { margin: 8px 0 12px; }
 .queue-workspace .queue-actions { gap: 12px; margin: 0 0 16px; }
 .queue-selection {
   display: flex;
