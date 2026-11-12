@@ -233,7 +233,7 @@ export function AnalyticsView() {
     </section>}
     <section className={styles.pinSection}>
       <div className={styles.controls}>
-        <div><h2>Your Pinterest Pins</h2><p className={styles.note}>{pins.length.toLocaleString()} Pins loaded{pinsBusy ? " · Loading more…" : complete ? " · All available pages loaded" : " · Loading incomplete"}</p></div>
+        <div><h2>Pin Performance</h2><p className={styles.note}>{pins.length.toLocaleString()} Pins loaded{pinsBusy ? " · Loading more…" : complete ? " · All available pages loaded" : " · Loading incomplete"}</p></div>
         <div className={styles.options}>
           <label>Pin metrics<select value={period} onChange={event => { setPeriod(event.target.value as "recent" | "lifetime"); setShown(initialPinCount); }}>
             <option value="recent">Last 90 days</option><option value="lifetime">Lifetime, where available</option>
@@ -258,7 +258,7 @@ export function AnalyticsView() {
       </table></div>}
       {filtered.length > shown && <button className={`button primary ${styles.showMorePins}`} onClick={() => setShown(value => value + initialPinCount)}>Show more Pins</button>}
       {pins.length > 0 && filtered.length === 0 && <p className={styles.note}>No matching Pins.</p>}
-      <p className={styles.note}>Pin metrics use the period shown above and are independent of the account date range. A dash means Pinterest did not supply that metric. Lifetime coverage varies by Pin age and format. Recent activity may still be processing.</p>
+      <p className={styles.note}>Pin metrics reflect the selected period. Some data may be unavailable or still processing.</p>
     </section>
     </>}
   </>;
