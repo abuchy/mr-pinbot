@@ -170,6 +170,7 @@ export function AnalyticsView() {
   const activePoint = chartSeries.flatMap(series => series.points).find(point => point.key === activePointKey);
   return <>
     <div className={styles.accountControls}>
+      <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
       <div className={styles.options}>
         <label>Account range<select value={preset} onChange={event => {
           const value = event.target.value;
@@ -196,7 +197,7 @@ export function AnalyticsView() {
     <p className={`${styles.note} ${styles.accountNote}`}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
       <div className={styles.chartHeader}>
-        <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
+        <h2>Performance Trends</h2>
         <ul className={styles.chartLegend} aria-label="Chart legend">
           {chartSeries.map(({ metric, color, points }) => <li key={metric}>
             <span aria-hidden="true" style={{ backgroundColor: color }}/>

@@ -77,6 +77,7 @@
 .chartTooltip strong { font-weight: 600; }
 
 .accountControls { margin-bottom: 20px; }
+.accountControls > h2 { margin-bottom: 12px; }
 .connection { margin-top: var(--page-section-gap); }
 :global(main):has(.connection) { padding-bottom: var(--main-side-padding); }
 .accountControls .options label { font-size: 14px; }
