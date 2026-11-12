@@ -66,8 +66,8 @@
 .chartTooltip strong { font-weight: 600; }
 
 .accountControls { display: grid; gap: 24px; margin-bottom: 20px; }
-:is(.accountControls, .trend) .options label { font-size: 14px; }
-:is(.accountControls, .trend) .options :is(select, input[type="date"]) { font-size: 12px; }
+.accountControls .options label { font-size: 14px; }
+.accountControls .options :is(select, input[type="date"]) { font-size: 12px; }
 .stats:global(.analytics-stats) { margin-bottom: 5px; }
 .stats :global(.stat-label) { font-size: 16px; }
 .options input[type="date"] { min-width: 0; height: 43px; border: 1px solid var(--line); padding: 10px 12px; background: var(--paper); color: black; font: inherit; }
@@ -80,50 +80,30 @@
 
 .chart, .tableScroll { background-color: #fff; }
 
-:is(.accountControls, .trend) .options select,
-:is(.accountControls, .trend) .options select option {
+.accountControls .options select,
+.accountControls .options select option {
   font-family: var(--font-space), Arial, sans-serif;
 }
 
 @supports (appearance: base-select) and selector(::picker(select)) {
   @media (forced-colors: none) {
-    :is(.accountControls, .trend) .options select,
-    :is(.accountControls, .trend) .options select::picker(select) {
+    .accountControls .options select,
+    .accountControls .options select::picker(select) {
       appearance: base-select;
     }
 
-    :is(.accountControls, .trend) .options select::picker(select) {
+    .accountControls .options select::picker(select) {
       font: inherit;
       background: var(--paper);
       border: 1px solid var(--line);
     }
 
-    :is(.accountControls, .trend) .options select::picker-icon {
+    .accountControls .options select::picker-icon {
       display: none;
     }
 
-    :is(.accountControls, .trend) .options select option {
+    .accountControls .options select option {
       padding: 8px 12px;
     }
   }
-}
-
-.trend { border: 1px solid var(--line); background: #fff; padding: 24px; }
-.trend h2 { font-size: 20px; }
-.trend h3 { font: 600 16px var(--font-space), sans-serif; margin: 24px 0 12px; }
-.trend .options { justify-content: flex-start; }
-.theme { border-top: 1px solid var(--line); padding: 12px 0; }
-.theme summary { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 16px; cursor: pointer; }
-.themeTrack { display: block; height: 8px; background: var(--paper); }
-.themeTrack span { display: block; height: 100%; background: var(--burgundy); }
-.explore { color: var(--burgundy); font-size: 12px; text-decoration: underline; }
-.themeStats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 16px 0; }
-.themeStats dt { color: var(--muted); font-size: 12px; }
-.themeStats dd { margin: 0; font-weight: 600; }
-.trendPatterns { list-style: none; margin: 0; padding: 0; }
-.trendPatterns li { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
-.trendPatterns li > span { color: var(--burgundy); }
-.trendPatterns p { margin: 4px 0 0; }
-@media (max-width: 600px) {
-  .trend { padding: 18px; }
 }

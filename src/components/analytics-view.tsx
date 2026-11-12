@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { PinterestConnection } from "./pinterest-connection";
-import { TrendSpotting } from "./trend-spotting";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { browserDatabase } from "@/lib/supabase-browser";
@@ -232,7 +231,6 @@ export function AnalyticsView() {
         {dateMarkers.map(marker => <time key={marker.date} dateTime={marker.date} style={{ left: `${marker.position}%` }}>{marker.date}</time>)}
       </div>
     </section>}
-    <TrendSpotting pins={pins} complete={complete} request={request}/>
     <section className={styles.pinSection}>
       <div className={styles.controls}>
         <div><h2>Your Pinterest Pins</h2><p className={styles.note}>{pins.length.toLocaleString()} Pins loaded{pinsBusy ? " · Loading more…" : complete ? " · All available pages loaded" : " · Loading incomplete"}</p></div>
