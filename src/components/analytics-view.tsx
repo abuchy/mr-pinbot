@@ -193,7 +193,7 @@ export function AnalyticsView() {
         <p>{notes[metric]}</p>
       </div>)}
     </section>
-    <p className={styles.note}>Includes activity on pre-existing Pins.</p>
+    <p className={`${styles.note} ${styles.accountNote}`}>Includes activity on pre-existing Pins.</p>
     {summary && <section className={styles.chart}>
       <div className={styles.chartHeader}>
         <h2>Performance Over {preset === "custom" ? "Custom Date Range" : `Last ${preset} Days`}</h2>
