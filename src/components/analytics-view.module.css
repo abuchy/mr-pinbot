@@ -26,6 +26,8 @@
   .chartDates time:nth-child(even) { display: none; }
 }
 .pinSection { margin-top: var(--page-section-gap); }
+/* Match the visible gap below the page subtitle, including its line spacing. */
+.chart + .pinSection { padding-top: 5px; }
 .pinSection > .note:last-child { margin-bottom: 0; }
 .showMorePins { margin-bottom: 16px; }
 .search { max-width: 340px; margin-bottom: 24px; }
