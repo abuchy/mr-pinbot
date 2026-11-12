@@ -170,7 +170,6 @@ export function AnalyticsView() {
   const activePoint = chartSeries.flatMap(series => series.points).find(point => point.key === activePointKey);
   return <>
     <div className={styles.accountControls}>
-      <PinterestConnection onDisconnect={onDisconnect}/>
       <div className={styles.options}>
         <label>Account range<select value={preset} onChange={event => {
           const value = event.target.value;
@@ -261,5 +260,8 @@ export function AnalyticsView() {
       <p className={styles.note}>Pin metrics reflect the selected period. Some data may be unavailable or still processing.</p>
     </section>
     </>}
+    <div className={styles.connection}>
+      <PinterestConnection onDisconnect={onDisconnect}/>
+    </div>
   </>;
 }
