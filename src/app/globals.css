@@ -206,3 +206,5 @@ main:has(.pinterest-connection-panel) { padding-bottom: var(--main-side-padding)
 .pinterest-connection-panel {
   background-color: #fff;
 }
+
+.library-privacy-notice { border-top: 0; }
