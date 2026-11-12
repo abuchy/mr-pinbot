@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
             if (failure instanceof PinterestError && failure.status === 429) {
               return privateJson({ metrics: Object.fromEntries(entries), rateLimited: true });
             }
-            if (!(failure instanceof PinterestError) || ![403, 404].includes(failure.status)) throw failure;
+            if (!(failure instanceof PinterestError) || ![401, 403, 404].includes(failure.status)) throw failure;
             entries.push([id, values(null)] as const);
           }
         }
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         return privateJson({ metrics: Object.fromEntries(ids.map(id =>
           [id, values(results[id]?.all?.summary_metrics)])) });
       } catch (failure) {
-        if (failure instanceof PinterestError && [403, 404].includes(failure.status)) {
+        if (failure instanceof PinterestError && [401, 403, 404].includes(failure.status)) {
           return privateJson({ metrics: {}, bulkUnavailable: true });
         }
         throw failure;
