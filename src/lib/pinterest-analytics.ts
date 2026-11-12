@@ -2,7 +2,7 @@ export const analyticsMetrics = ["IMPRESSION", "SAVE", "PIN_CLICK", "OUTBOUND_CL
 export type AnalyticsMetric = typeof analyticsMetrics[number];
 export type MetricValues = Record<AnalyticsMetric, number | null>;
 export type AnalyticsPin = {
-  id: string; title: string; image: string | null; createdAt: string | null;
+  id: string; title: string; description?: string; image: string | null; createdAt: string | null;
   recent: MetricValues; lifetime: MetricValues;
 };
 
@@ -30,7 +30,7 @@ export function validAnalyticsRange(start: string, end: string, now = new Date()
 }
 
 export function normalizeAnalyticsPin(input: {
-  id: string; title?: string | null; created_at?: string | null;
+  id: string; title?: string | null; description?: string | null; created_at?: string | null;
   media?: { images?: Record<string, { url?: string }> };
   pin_metrics?: Record<string, unknown> | null;
 }): AnalyticsPin {
@@ -39,6 +39,7 @@ export function normalizeAnalyticsPin(input: {
   return {
     id: input.id, title: input.title || "Untitled Pin", createdAt: input.created_at || null,
     image: image && /^https:\/\//i.test(image) ? image : null,
+    ...(input.description ? { description: input.description } : {}),
     recent: metricValues(input.pin_metrics?.["90d"]),
     lifetime: metricValues(input.pin_metrics?.lifetime_metrics),
   };

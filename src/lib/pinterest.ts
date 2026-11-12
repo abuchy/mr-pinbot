@@ -227,9 +227,28 @@ export async function pinterestAccountPins(token: string, bookmark?: string, met
   const query = new URLSearchParams({ page_size: "100", pin_metrics: String(metrics) });
   if (bookmark) query.set("bookmark", bookmark);
   return pinterestRequest<{
-    items: { id: string; title?: string | null; created_at?: string | null;
+    items: { id: string; title?: string | null; description?: string | null; created_at?: string | null;
       media?: { images?: Record<string, { url?: string }> };
       pin_metrics?: Record<string, unknown> | null }[];
     bookmark?: string | null;
   }>("pins?" + query, { headers: { Authorization: "Bearer " + token } });
+}
+
+export async function pinterestTrendMetrics(token: string, ids: string[], start: string, end: string) {
+  const query = new URLSearchParams({
+    pin_ids: ids.join(","), start_date: start, end_date: end,
+    metric_types: "IMPRESSION,OUTBOUND_CLICK",
+  });
+  return pinterestRequest<Record<string, { all?: { summary_metrics?: Record<string, number> } }>>(
+    "pins/analytics?" + query, { headers: { Authorization: "Bearer " + token } },
+  );
+}
+
+export async function pinterestSingleTrendMetrics(token: string, id: string, start: string, end: string) {
+  const query = new URLSearchParams({
+    start_date: start, end_date: end, metric_types: "IMPRESSION,OUTBOUND_CLICK",
+  });
+  return pinterestRequest<{ all?: { summary_metrics?: Record<string, number> } }>(
+    `pins/${id}/analytics?` + query, { headers: { Authorization: "Bearer " + token } },
+  );
 }

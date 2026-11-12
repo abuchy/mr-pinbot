@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { authenticatedDatabase, privateJson } from "@/lib/api-auth";
-import { connectionTable, pinterestAccountAnalytics, pinterestAccountPins, pinterestConfig, PinterestError, pinterestProfile, refreshAccess } from "@/lib/pinterest";
+import { connectionTable, pinterestAccountAnalytics, pinterestAccountPins, pinterestConfig, PinterestError, pinterestProfile, pinterestTrendMetrics, pinterestSingleTrendMetrics, refreshAccess } from "@/lib/pinterest";
 import { analyticsRange, metricValues, normalizeAnalyticsPin, validAnalyticsRange } from "@/lib/pinterest-analytics";
 
 export const maxDuration = 60;
@@ -13,9 +13,15 @@ export async function GET(request: NextRequest) {
   const mode = request.nextUrl.searchParams.get("mode") || "summary";
   const days = Number(request.nextUrl.searchParams.get("days") || 30);
   const bookmark = request.nextUrl.searchParams.get("bookmark") || undefined;
-  if (!["summary", "pins"].includes(mode) || ![7, 30, 90].includes(days) || (bookmark && bookmark.length > 2048)) {
+  if (!["summary", "pins", "trends"].includes(mode) || ![7, 30, 90].includes(days) || (bookmark && bookmark.length > 2048)) {
     return privateJson({ error: "Choose a valid analytics range." }, 400);
   }
+  const ids = (request.nextUrl.searchParams.get("ids") || "").split(",");
+  if (mode === "trends" && (ids.length > 100 || ids.some(id => !/^\d{1,20}$/.test(id)))) {
+    return privateJson({ error: "Choose up to 100 valid Pins." }, 400);
+  }
+  const single = request.nextUrl.searchParams.get("single") === "1";
+  if (mode === "trends" && single && ids.length > 4) return privateJson({ error: "Choose up to four Pins for individual analytics." }, 400);
   const start = request.nextUrl.searchParams.get("start");
   const end = request.nextUrl.searchParams.get("end");
   if ((start !== null || end !== null) && !validAnalyticsRange(start ?? "", end ?? "")) {
@@ -30,6 +36,39 @@ export async function GET(request: NextRequest) {
   }
   try {
     const token = await refreshAccess(config, connection.data);
+    if (mode === "trends") {
+      const range = start && end ? { start, end } : analyticsRange(days);
+      const values = (raw: unknown) => {
+        const metrics = metricValues(raw);
+        return { impressions: metrics.IMPRESSION, clicks: metrics.OUTBOUND_CLICK };
+      };
+      if (single) {
+        const entries = [];
+        for (const id of new Set(ids)) {
+          try {
+            const result = await pinterestSingleTrendMetrics(token, id, range.start, range.end);
+            entries.push([id, values(result.all?.summary_metrics)] as const);
+          } catch (failure) {
+            if (failure instanceof PinterestError && failure.status === 429) {
+              return privateJson({ metrics: Object.fromEntries(entries), rateLimited: true });
+            }
+            if (!(failure instanceof PinterestError) || ![403, 404].includes(failure.status)) throw failure;
+            entries.push([id, values(null)] as const);
+          }
+        }
+        return privateJson({ metrics: Object.fromEntries(entries) });
+      }
+      try {
+        const results = await pinterestTrendMetrics(token, ids, range.start, range.end);
+        return privateJson({ metrics: Object.fromEntries(ids.map(id =>
+          [id, values(results[id]?.all?.summary_metrics)])) });
+      } catch (failure) {
+        if (failure instanceof PinterestError && [403, 404].includes(failure.status)) {
+          return privateJson({ metrics: {}, bulkUnavailable: true });
+        }
+        throw failure;
+      }
+    }
     if (mode === "pins") {
       let warning: string | null = null;
       let pins;
@@ -55,6 +94,9 @@ export async function GET(request: NextRequest) {
       checkedAt: new Date().toISOString(),
     });
   } catch (failure) {
+    if (mode === "trends" && failure instanceof PinterestError && [403, 404].includes(failure.status)) {
+      return privateJson({ error: "Pinterest did not grant access to date-range Pin analytics for this request." }, 503);
+    }
     const detail = failure instanceof PinterestError && failure.upstream
       ? ` (Pinterest HTTP ${failure.upstream.httpStatus}${failure.upstream.code === undefined ? "" : `, code ${failure.upstream.code}`})` : "";
     const denied = failure instanceof PinterestError && failure.status === 403;
