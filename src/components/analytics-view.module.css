@@ -81,6 +81,7 @@
 .accountControls { margin-bottom: 20px; }
 .accountControls > h2 { margin-bottom: 12px; }
 .connection { margin-top: var(--page-section-gap); }
+.pinSection + .connection { padding-top: 5px; }
 :global(main):has(.connection) { padding-bottom: var(--main-side-padding); }
 .accountControls .options label { font-size: 14px; }
 .accountControls .options :is(select, input[type="date"]) { font-size: 12px; }
