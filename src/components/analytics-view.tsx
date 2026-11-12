@@ -8,7 +8,7 @@ import { browserDatabase } from "@/lib/supabase-browser";
 import { analyticsRange, validAnalyticsRange, analyticsMetrics, type AnalyticsMetric, type AnalyticsPin, type MetricValues } from "@/lib/pinterest-analytics";
 import styles from "./analytics-view.module.css";
 
-const initialPinCount = 25;
+const initialPinCount = 10;
 const labels: Record<AnalyticsMetric, string> = { IMPRESSION: "Impressions", SAVE: "Saves", PIN_CLICK: "Pin clicks", OUTBOUND_CLICK: "Outbound clicks" };
 const notes: Record<AnalyticsMetric, string> = { IMPRESSION: "Times your Pins were seen", SAVE: "Ideas saved for later", PIN_CLICK: "A closer look at your content", OUTBOUND_CLICK: "Visits to your destination links" };
 const number = (value: number | null | undefined) => value == null ? "—" : value.toLocaleString();
