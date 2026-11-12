@@ -65,7 +65,7 @@
 .chartTooltip span { color: var(--muted); font-size: 11px; }
 .chartTooltip strong { font-weight: 600; }
 
-.accountControls { display: grid; gap: 40px; margin-bottom: 20px; }
+.accountControls { display: grid; gap: 80px; margin-bottom: 20px; }
 .accountControls .options label { font-size: 14px; }
 .accountControls .options :is(select, input[type="date"]) { font-size: 12px; }
 .stats:global(.analytics-stats) { margin-bottom: 5px; }
