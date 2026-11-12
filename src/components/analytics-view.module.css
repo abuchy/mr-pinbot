@@ -66,7 +66,8 @@
 .chartTooltip strong { font-weight: 600; }
 
 .accountControls { margin-bottom: 20px; }
-.connection { margin-top: 24px; padding-bottom: 20px; }
+.connection { margin-top: 24px; }
+:global(main):has(.connection) { padding-bottom: var(--main-side-padding); }
 .accountControls .options label { font-size: 14px; }
 .accountControls .options :is(select, input[type="date"]) { font-size: 12px; }
 .stats:global(.analytics-stats) { margin-bottom: 5px; }
